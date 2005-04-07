@@ -25,5 +25,5 @@ other things
 
 Next few steps:
 - Maybe use locales for m/\w/ and the like
-- Have dumps written in XML (maybe write the pisg guy?)
+- Dump to *SQL
 - Write Apache-Style config parser
