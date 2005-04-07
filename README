@@ -144,7 +144,7 @@ The configuration file (default: ``users.conf'') has the following syntax:
 
 -- BEGIN: users.conf --
 # User configuration for #channel
-this_username
+nickname
 {
 	name:	Realname;
 	host:	*!real*@*.provider.com;
