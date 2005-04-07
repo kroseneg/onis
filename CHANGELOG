@@ -1,0 +1,240 @@
+ onis - CHANGELOG
+==================
+http://verplant.org/onis/
+
+  0.7.2 - Spanish translation
+ =============================
+ - Javier Garcia Alarcon (Sorry, my term didn't like all the fancy spanish
+   characters :/) has contributed a spanish translation for onis. Thank you
+   very much :)
+
+
+
+  0.7.1 - Improved aging and new translation
+ ============================================
+ - ``Aging'' now only occurs once a day, so you can generate hourly-stats
+   without losing data..
+ - Christoffer Jonsson has sent in a swedish translation. Thank you very
+   much :)
+ - Fixes in the CSS files allow the MSIE to render the generated files
+   correctly. You have to resize the images to 50 by 50 pixels though.. If
+   you don't like that you'll have to edit the CSS files yourself..
+
+
+
+  0.7.0 - Aging data and themes
+ ===============================
+ - A parser for EnergyMech logfiles has been contributed/added. Thanks to
+   Korbinian Rosenegger :) Unfortunately it doesn't quite work, yet..
+ - When including images in the stats the images will now be displayed in
+   the Userdetails-stats, too.
+ - There is a new ``public_page'' option: When set to ``true'' (the
+   default setting) the page will eventually show up on onis' homepage.
+ - There is now support for simple themes. Basically, they are ordered
+   configs.. Also, the themes have been improved a bit..
+ - Words, Nicks and Ident `age' now. This means, that a lot less diskspace
+   will be used to store persistent data, because useless old data will be
+   removed..
+ - The nicks-Plugin is now RFC2812 compliant.
+
+
+
+  0.6.1 - Bugfixes
+ ==================
+ - A display bug with the ``Conversations'' plugin has been fixed.
+ - POD documentation for some modules has been improved/added.
+ - Bjørn Danielsen has contributed a norwegian translation.
+   Thanks a lot :)
+ - Handling of unidentified nicks has been improved. People who don't use
+   the users-configuration and run onis on small logs (daily logs or so)
+   may see a huge improvment here..
+
+
+
+  0.6.0 - Detailed nick statistics
+ ==================================
+ - The new ``Userdetails''-plugin provides detailed per-user-statistics
+   for people that are into that kind of things (ie. me ;).
+ - The width of the bars of the ``Conversation''-plugin is calculated more
+   appropriately now.
+ - Typos in lang/german.lang have been fixed.
+ - Persistency files won't work with any other version than they were
+   created with.
+
+
+
+  0.5.1 - Some more cosmetics
+ =============================
+ - Dircproxy parser has been fixed. The format seems to have changed.
+ - Error- and warning-messages have been changed to provide more
+   information about what's wrong and how it can be fixed.
+
+
+
+  0.5.0 - Stable, at last
+ =========================
+ - The Conversations- and the Nicks-plugin both now ignore nicks that
+   didn't write at least 100 lines. This value will be configurable in a
+   later release.
+ - The persistency data is ignored now, if the user configuration changes.
+   This has caused some irritation in the past so I thought it would be
+   good to implement..
+ - Output fixes.. (Thanks Bob :)
+ - A new theme, named ``liner'' after it's creator, has been added.
+   Thanks a lot :)
+ 
+
+
+  0.4.9 - Bugfixes and conversations
+ ====================================
+ - Workaround for MSIE issues have been implemented. Isn't it weird that
+   such a widespread browser can;t even center a table the right way?!
+ - A bug html-tag generation code has been fixed. Now all there's left to
+   do is to use them ;)
+ - The ``Conversations'' plugin has been added. It displays the persons
+   with the most conversations.
+ - The user config has been integrated a lot better into the nick-tracing
+   code.
+ - A bug in the persistency code has been fixed. Thanks to Bob Ball for
+   reporting it :)
+
+
+
+  0.4.8 - Look ma, that's me on the internet ;)
+ ===============================================
+ - Option to add an image to each nick has been added.
+ - Option to ignore hosts/nicks has been added.
+ - The newest time is now saved per-file, so the order of the input files
+   doesn't matter anymore.
+ - Files are no longer identified by their name, their inode numbers are
+   used instead. This has not been tested unter M$ Windows!
+ - New default config is to sort the users by words, not lines.
+ - Fixed bug with the coloring-code (Thanks to Bob Ball for pointing this
+   out :)
+
+
+
+  0.4.7 - Colors and users
+ ==========================
+ - Added forgotten ident prefix `='.
+ - Recognition of mIRC-color-codes has been added. (Thanks to Bob Ball for
+   coding this :)
+ - A user-configuration has been added which aloows to set specific
+   information (like link, realname and image) for an user.
+
+
+
+  0.4.6 - Yet another nasty bug fixed
+ =====================================
+ - A bug in the persistency code has been fixed: If the first line of a
+   logfile had the same timestamp as the last line parsed in the previous
+   run, the entire logfile would not be parsed.
+ - An alternate config file can be set with the ``--config'' command line
+   argument.
+
+
+
+  0.4.5 - Purge option and fixes
+ ================================
+ - Option to automatically purge (truncate or delete) parsed logfiles has
+   been added.
+ - Input files will be sorted by mtime from now on. This addresses an
+   issue with weird sorted input..
+ - The dancer-parser has had a problem with the month of december (which
+   has been taken care of ;)
+ - A potential deivision by zero in Html.pm has been fixed.
+
+
+
+  0.4.4 - Bugfix release
+ ========================
+ - Forgotten config options have been added again.
+ - Fixes in the translation system.
+
+
+
+  0.4.3 - Multilingualism
+ =========================
+ - A bug in the generated HTML code has been fixed.
+ - Support for translations and a german translation has been added.
+ - A parser for dancer-logs has been added (again).
+
+
+
+  0.4.2 - Bugfix release
+ ========================
+ - An issue with perl 5.8.0 has been resolved: Time::Local tried to load
+   ``Config'' and got onis' module with the same name.
+ - A bug in the Eggdrop parser has been fixed: leave-events were not
+   parsed correctly.
+ - A parser for xchat has been added.
+
+
+
+  0.4.1 - Added missing features and more
+ =========================================
+ - Internal restructure due to planned features.
+ - The main table can now be sorted by lines, words or characters written.
+ - Written lines, words and characters can be displayed at will. You can
+   even chose between number only, bar only and both.
+ - The overall-distribution of time spent chatting can be displayed.
+ - A plugin named ``Interesting Numbers'' has been added. It brings back
+   the information displayed by the ``Action'', ``Kicks'' and
+   ``Soliloquies'' plugins.
+ - URLs are now cut after 50 characters.
+ - The daily activity stats now use characters (instead of lines) for
+   greater precision.
+
+
+
+  0.4.0 - Complete rewrite (testing)
+ ====================================
+ - Complete rewrite of huge parts of the program.
+ - Improvments for nick-tracing.
+ - Fixes for URL-Matching.
+ - Better config-parsing.
+ - Persistent data using ``Storable''.
+ - New, lighter output theme.
+ - Tons of other stuff I forgot to write down.
+
+
+
+  0.3.3 - Major Feature Enhancements
+ ====================================
+ - Bug fixed: eggdrop and dircproxy logs wouldn't work with the kicks
+   plugin. Thanks to Daniel Peters.
+ - New plugin: nicks determines the nicks which were mentioned the most.
+ - New plugin: channel tries to determine the channel's name. This only
+   works with eggdrop, ircii, mirc and perlbot logs.
+ - New plugin: topics lists the last topics set in the channel.
+ - There are more configuration options for certain plugins.
+ - onis uses Getopt::Long for some settings such as channel name or output
+   file. Getopt::Long is part of the standard perl distribution.
+ - Quotes taken out of the logfiles are now escaped and URLs are linked.
+   There can be only one URL per line so far.
+ - Bug fixed: You can now include images from other webservers in the
+   config file.
+ - Bug fixed: The words plugin now ignores nicks.
+
+
+
+  0.3.0 - Major Feature Enhancements
+ ====================================
+ - Merged Fester's "extensions" into the main branch as "plugins". These 9
+   (!) new plugins give a lot of useless information about the channel
+   usage.
+ - Added parsing modules for dancer- and dircproxy-logfiles. Thanks to
+   Korbinian Rosenegger for writing the initial code.
+ - Modularized the entire structure of onis.
+ - The new comment-character is ';'. I though it would look better.
+ - Updated the perlbot parser so it is compatible with perlbot 1.4.2
+
+
+
+  0.2.0 - advanced and tested pre0.1.9
+ ======================================
+ - user-ranking scaleable (check the config-file)
+ - improvment of the user-tracing. slows down when handling unknown nicks,
+   so make sure to use the plugin if running perlbot!
+ - source better documented
+ - changed syntax!!

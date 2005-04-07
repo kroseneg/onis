@@ -1,0 +1,34 @@
+ onis 0.7.1 - FAQ - 2004-10-30
+===============================
+http://verplant.org/onis/
+
+
+First off: Read the ``README'' file.. I didn't write it because I think
+writing useless README-stuff is a fun activity.
+
+
+ 1. ``Some nicks simply don't appear in the statistics.''
+==========================================================
+onis needs to know a nicks hostname and ident before it can collect data
+for it. The most common way to get the ident/hostname pair is by joining
+the channel.
+
+ 2. ``onis tells me there is no data when I try to parse my logs!''
+====================================================================
+If you use eggdrop-logs:
+    Read the ``README'' file. Now! And make sure you don't miss
+    section `3.2'!
+If you _don't_ use eggdrop-logs:
+    Did you set the ``logtype'' option correctly? It's in the ``config''
+    file somewhere. If you have set this option correctly and keep getting
+    this error even with larger (> 1000 lines) logs, please send an email.
+
+ 3. ``onis can't find "warnings.pm" or something..''
+=====================================================
+For some reason especially FreeBSD users seem to use an outdated version
+of perl (< 5.6.0). This old version does not provide the ``warnings''
+pragma, which onis uses. Your best bet is to upgrade your perl
+distribution to at least 5.6.0.
+
+--
+octo (at verplant.org)

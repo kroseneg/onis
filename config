@@ -1,0 +1,152 @@
+# onis 0.7.2 - config - 2005-01-21
+#==================================
+# http://verplant.org/onis/
+
+# This options tells onis what type of logfiles to expect. Valid values
+# are ``Dircproxy'', ``Eggdrop'', ``Irssi'', ``mIRC'' and ``xchat''.
+logtype: "Eggdrop";
+
+# Thif option is available for scripts to set the input source once and
+# for all. Since wildcards are not interpreted this is of little use for
+# the averange user.
+#input: "/path/to/my/file";
+
+# Sets the output file. This has to be a file, not a directory. This is
+# also mostly interesting for scripts.
+#output: "/var/www/html/ircstats/cannel.html";
+
+# Set this option to ``true'' to have onis overwrite files without
+# promting. Default is to ask.
+overwrite: "false";
+
+# Sets the users-config file to use. By default reads ``users.conf''.
+#users_config: "users.conf";
+
+# Purge logs that have been parsed. Two modes of operation can be
+# selected: ``truncate'' deletes the content of file but lets the file
+# life on. This might be usefull for clients that don't create new logs
+# automatically.. The other mode, ``delete'', well, deletes parsed files.
+# This might come in handy when a client creates a new logfile for every
+# day.
+#purge_logs: "truncate";
+
+# Set this to your (nick)name to see it appear on the stats page. Uses
+# your username if you don't set anything here.
+#user: "mynick";
+
+# Explicitly set the channel's name here. For most logfiles this is not
+# neccessary, but it is for some. ``Dircproxy'' to be specific.
+#channel: "#ourchannel";
+
+# Load these plugins. These are all available plugins as of now, but this
+# is a development release. The missing one(s) will be back..
+plugin: "Conversations";
+plugin: "BigNumbers";
+plugin: "Words";
+plugin: "Nicks";
+plugin: "Urls";
+plugin: "Topics";
+plugin: "InterestingNumbers";
+plugin: "Userdetails";
+
+# In order to recognize users who use dialin-accounts or have for some
+# other reason changing hostnames it is neccessary to unsharp the host.
+# This options says how much to unsharp it. Valid values are ``none'',
+# ``Light'', ``Medium'' and ``Hard''. Most people will go best with
+# ``Medium''..
+unsharp: "Medium";
+
+# Sets the minimum length for a word. ``5'' is a good value to start
+# with..
+min_word_length: 5;
+
+# Sort the main table by this field. Valid values are ``Lines'', ``Words''
+# and ``Chars''. Defaults to ``Lines''.
+sort_by: "Words";
+
+# Display the following fields in the given format. Valid formats are
+# ``None'', ``Number'', ``Bar'' and ``Both''.
+display_lines: "None";
+display_words: "Both";
+display_chars: "None";
+
+# Sets wether or not user-images are displayed. Defaults to not display
+# the images, since by default none are defined..
+#display_images: "false";
+
+# Sets the default image which is displayed for users which don't have an
+# image set. If not set no image will be displayed for those users. If a
+# theme sets a default image and you want to un-set is, use "".
+#default_image:  "light-theme/unknown.png";
+
+# If set to true a bar indicating the time when a user is most active is
+# being printed in the main table.
+display_times: "false";
+
+# This options control which quotes are picked and how far back they can
+# reach. A line is put into the quote-cache if it is a least ``quote_min''
+# and at most ``quote_max'' characters long. No more than
+# ``quote_cache_size'' quotes are stored in the cache to have recent
+# quotes if possible.
+quote_min: 30;
+quote_max: 80;
+quote_cache_size: 10;
+
+# With the following option you can control how high and wide the bars
+# are. Values are in pixels. Height applies to vertical, width to
+# horizontal bars.
+bar_height: 130;
+bar_width: 100;
+
+# ``longlines'' defines how many nicks are in the big main table,
+# ``shortlines'' sets the number of _lines_ in the smaller table below.
+# Keep in mind that there are six nicks per line in the smaller table..
+longlines:  50;
+shortlines: 10;
+
+# The ``plugin_max'' option is used by various plugins to determine how
+# many records (lines, rows, etc) should be printed.
+plugin_max: 10;
+
+# Matching the nicks contained in a line very slow. So we use a trick
+# which is not as accurate but a lot faster. If you want to use the slow
+# but better solution instead, set this option to ``good''. Otherwise
+# leave at ``fast''.
+nick_match_type: "fast";
+
+# The ``last used words'' plugin will ignore words shorter than this
+# value. This is not the same as ``min_word_length''!
+ignore_words: 5;
+
+# This many lines from the same person without interuption will be counted
+# as one soliloquy.
+soliloquies_count: 5;
+
+# onis can create a ``persistency'' or ``history'' file. If such exists
+# the already parsed part of a logfile can be skipped and unchanged
+# logfiles are skipped entirely. However, for this to work you have to
+# have ``Storable'' installed. If you have ``Storable'' installed but do
+# not wish onis to write and/or use such a file you can disable it here.
+#use_persistency: "true";
+
+# Sets the file which onis will dump it's state into.
+persistency_file: "persistency.data";
+
+# If set to ``print'' prints out all color-codes. If set to ``ignore''
+# color-codes will not be printed. Default is to ignore colors..
+#color_codes: "print";
+
+# Sets the document encoding. This must match your webserver's settings or
+# you'll experience some very weird characters..
+# Defaults to ``iso-8859-1''.
+#encoding: "iso-8859-1";
+
+# Style settings. If no theme is given this might result in a lot of very
+# weird errors, so better set one ;)
+# Valid themes as of onis 0.7.0: light, liner, dark
+theme: "themes/light.theme";
+
+# Read translations from this file.
+# One of:
+# english.lang german.lang norwegian.lang spanish.lang swedish.lang
+language_file: "lang/english.lang";

@@ -1,0 +1,333 @@
+#!/usr/bin/perl
+##########################################################################
+#    onis 0.7.2                                               2005-01-21 #
+#---=============--------------------------------------------------------#
+# Language: Perl                                                         #
+# Purpose:  Generating statistics                                        #
+# Input:    IRC-Logfiles                                                 #
+# Output:   One HTML file                                                #
+# Version:  0.7.2 (unstable)                                             #
+# License:  GPL                                                          #
+# Homepage: http://verplant.org/onis/                                    #
+# Authors:  Florian octo Forster <octo@verplant.org>                     #
+#           Contributions are listed in THANKS                           #
+##########################################################################
+
+BEGIN
+{
+	if ($0 =~ m#^(.*)[/\\]#) { chdir ($1); }
+
+	unshift (@INC, 'lib');
+
+	# 0x0010   Language (make not-translated lines red/yellow)
+	# 0x0020   Parser (dropped lines)
+	# 0x0040   Parser (time information)
+	# 0x0100   Data::Core (host unsharp)
+	# 0x0200   Data::Persistent
+	# 0x0400   Data::Core (dump incoming data to stderr)
+	# 0x0800   Data::Core (initializing)
+	# 0x1000   Onis::Users
+	$::DEBUG = 0x0000;
+}
+
+use strict;
+use warnings;
+
+use Onis::Config qw/get_config parse_argv read_config/;
+use File::Basename qw/dirname/;
+use Fcntl qw/:flock/;
+
+use vars qw/$VERSION/;
+
+$VERSION = '0.7.2';
+
+our $FILEINFO;
+our $PURGE_LOGS = 0;
+
+print STDERR $/, __FILE__, ': $Id: onis,v 1.18 2005/01/21 18:59:59 octo Exp $' if ($::DEBUG);
+
+parse_argv (@ARGV);
+read_config (get_config ('config') ? get_config ('config') : 'config');
+read_config (scalar get_config ('theme')) if (get_config ('theme'));
+
+my $output = get_config ('output');
+if (!$output)
+{
+	$output = "reports/onis.html";
+}
+
+foreach ('Core', get_config ('plugin'))
+{
+	my $module = ucfirst (lc ($_));
+	require "Onis/Plugins/$module.pm";
+}
+
+if (!get_config ('input'))
+{
+	print STDERR <<EOF;
+
+Usage: $0 [options] <logfile> [logfile logfile ..]
+
+Options:
+	--config		Specify alternate config file
+	--output <file>		Defines the file to write the HTML to.
+	--overwrite <bool>	Overwrites files without prompting.
+	--channel <channel>	Defines the channel's name.
+	--logtype <type>	Defines the logfile's type.
+				See 'config' for a complete list.
+	--user <name>		Define's the generator's name.
+
+For a full list of all options please read the ``config'' file.
+EOF
+	exit (1);
+}
+
+if (-e $output)
+{
+	my $overwrite = 0;
+	if (get_config ('overwrite'))
+	{
+		my $tmp = lc (get_config ('overwrite'));
+		if ($tmp eq 'true' or $tmp eq 'yes' or $tmp eq 'on')
+		{
+			$overwrite = 1;
+		}
+	}
+	
+	if (!$overwrite)
+	{
+		print STDERR <<MESSAGE;
+
+WARNING: The output file ``$output'' already exists
+
+  You can set the ``overwrite'' option in the config
+  file to disable this dialog.
+
+MESSAGE
+		print STDERR 'Are you sure you want to overwrite it? [Y|n] ';
+		my $answer = <STDIN>;
+		exit (1) if ($answer =~ m/n/i);
+	}
+}
+
+my $logtype = 'Eggdrop';
+if (get_config ('logtype'))
+{
+	$logtype = ucfirst (lc (get_config ('logtype')));
+}
+
+require "Onis/Parser/$logtype.pm";
+require Onis::Parser::Persistent;
+require Onis::Data::Persistent;
+import Onis::Parser qw/parse last_date/;
+import Onis::Parser::Persistent qw#newfile#;
+import Onis::Data::Persistent qw#init#;
+
+$FILEINFO = init ('$FILEINFO', 'hash');
+
+if (get_config ('purge_logs'))
+{
+	my $temp = lc (get_config ('purge_logs'));
+	if (($temp eq 'truncate') or ($temp eq 'shorten'))
+	{
+		$PURGE_LOGS = 1;
+	}
+	elsif (($temp eq 'delete') or ($temp eq 'remove')
+			or ($temp eq 'del'))
+	{
+		$PURGE_LOGS = 2;
+	}
+}
+
+for (get_config ('input'))
+{
+	my $file = $_;
+	my $logfile;
+	my $status = 4;
+	my $position = 0;
+	my $mtime;
+	my $size;
+	my $inode;
+
+	($inode, $size, $mtime) = (stat ($file))[1,7,9];
+
+	print STDERR $/, $/, __FILE__, " --- New File ``$file'' ---" if ($::DEBUG & 0x200);
+	
+	if (!defined ($mtime))
+	{
+		print STDERR $/, __FILE__, ": Unable to stat file ``$file''";
+		next;
+	}
+	else
+	{
+		print STDERR $/, __FILE__, ": ``$file'': " if ($::DEBUG & 0x200);
+		if (defined ($FILEINFO->{$inode}{'mtime'}))
+		{
+			if ($FILEINFO->{$inode}{'mtime'} == $mtime)
+			{
+				print STDERR "File did not change. Skipping." if ($::DEBUG & 0x200);
+				next;
+			}
+			elsif ($FILEINFO->{$inode}{'mtime'} < $mtime)
+			{
+				print STDERR "File changed. Reading it again." if ($::DEBUG & 0x200);
+			}
+			else
+			{
+				print STDERR "File ``$file'' is older than expected. There might be a problem!";
+			}
+		}
+		else
+		{
+			print STDERR "File appears to be new. Reading it." if ($::DEBUG & 0x200);
+		}
+		$FILEINFO->{$inode}{'mtime'} = $mtime;
+	}
+	
+	# truncate
+	if ($PURGE_LOGS == 1)
+	{
+		unless (open ($logfile, '+< ' . $file))
+		{
+			print STDERR $/, __FILE__, ": Unable to open file ``$file'': $!";
+			next;
+		}
+	}
+	else
+	{
+		unless (open ($logfile, '< ' . $file))
+		{
+			print STDERR $/, __FILE__, ": Unable to open file ``$file'': $!";
+			next;
+		}
+	}
+	
+	if ($PURGE_LOGS)
+	{
+		unless (flock ($logfile, LOCK_EX))
+		{
+			print STDERR $/, __FILE__, ": Unable to get an exclusive lock for file ``$file'': $!";
+			close ($logfile);
+			next;
+		}
+	}
+	else
+	{
+		unless (flock ($logfile, LOCK_SH))
+		{
+			print STDERR $/, __FILE__, ": Unable to get a shared lock for file ``$file'': $!";
+			close ($logfile);
+			next;
+		}
+	}
+	
+	newfile ($FILEINFO->{$inode});
+	while (<$logfile>)
+	{
+		s/\n|\r//g;
+		$status = parse ($_);
+
+		# 0 == rewind file
+		# 1 == line parsed
+		# 2 == unable to parse
+		# 3 == line old
+		# 4 == don't have date
+
+		if ($status == 0)
+		{
+			print STDERR $/, __FILE__, ": Rewinding file ``$file''" if ($::DEBUG & 0x200);
+			seek ($logfile, 0, 0);
+			$position = 0;
+		}
+		elsif (($status == 1) or ($status == 2)
+				or ($status == 3))
+		{
+			$position = tell ($logfile);
+		}
+		elsif ($status == 4)
+		{
+			# void
+		}
+		else
+		{
+			print STDERR $/, __FILE__, ": Parser returned unknown status code: ``$status''";
+		}
+	}
+
+	if ($PURGE_LOGS and (($status == 1)
+				or ($status == 2)
+				or ($status == 3)))
+	{
+		if (($PURGE_LOGS > 1)
+			#and (($position + 1) >= $size)
+			)
+		{
+			# delete file
+			print STDERR $/, __FILE__, ": Deleting empty file ``$file''" if ($::DEBUG & 0x200);
+			close ($logfile);
+
+			if (-w $file)
+			{
+				unless (unlink ($file))
+				{
+					print STDERR $/, __FILE__, ": Unable to delete empty file ``$file'': $!";
+				}
+				delete ($FILEINFO->{$inode});
+			}
+			else
+			{
+				print STDERR $/, __FILE__, ": Won't delete ``$file''. Set it to writeable first!";
+			}
+		}
+		else
+		{
+			seek ($logfile, 0, 0);
+			if (truncate ($logfile, 0))
+			{
+				print $logfile &last_date ();
+				print STDERR $/, __FILE__, ": Truncated ``$file''" if ($::DEBUG & 0x200);
+			}
+			else
+			{
+				print STDERR $/, __FILE__, ": Couldn't truncate file ``$file'': $!";
+			}
+			
+			close ($logfile);
+		}
+	}
+	else
+	{	
+		close ($logfile);
+	}
+}
+
+require Onis::Data::Core;
+require Onis::Html;
+import Onis::Data::Core qw#print_output#;
+import Onis::Html qw#open_file close_file#;
+
+if (open_file ($output))
+{
+	print_output ();
+	close_file ();
+}
+else
+{
+	# Fail and make noise! ;)
+	print STDERR <<MESSAGE;
+
+ERROR: Unable to open output file
+
+The output file ``$output'' could not be opened. Please make sure to set
+the permissions right and try again.
+
+MESSAGE
+	exit (1);
+}
+
+exit (0);
+
+END
+{
+	print $/ if ($::DEBUG);
+}

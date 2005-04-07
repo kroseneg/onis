@@ -1,0 +1,29 @@
+Minor bugfix:
+[23:23] <@[charly]> nur doof wenn's 'nen nick namens "ich" gibt, mit dem reden dann alle am meisten ;)
+[23:24] <@octo> [charly]: Hm, und der hat auch 100 Zeilen geschrieben?
+[23:24] <@[charly]> mom
+[23:29] <@[charly]> w?rd sagen 3 zeilen
+
+- have config option to set min-lines for plugins
+
+- the config reader could generate a warning if you
+have a newline before a semicolon on a non-whitespace line?
+
+-  remove the
+elements from the bar where there is 0 activity - for example, the bar on the
+number of lines...
+
+- Finally, the other thing I think would be useful would be to exagerate the
+bottom bar on the main table; its too small to see when the user is on at the
+moment... so perhaps take a maximum (looks like the max is 100px?) and
+minimum width (perhaps 50px?) for the bottom bar and then have the bars for
+everyone inbetween scaled into this range?
+
+- Another thing that would be useful is a config option for some HTML that is
+put at the top of each stats page; so you can have links to other pages and
+other things
+
+Next few steps:
+- Maybe use locales for m/\w/ and the like
+- Have dumps written in XML (maybe write the pisg guy?)
+- Write Apache-Style config parser

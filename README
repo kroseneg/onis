@@ -1,0 +1,188 @@
+ onis 0.7.2 - README - 2005-01-21
+==================================
+http://verplant.org/onis/
+
+
+ Table of Contents
+-------------------
+ 1. Brief description
+ 2. Setting it up
+ 3. Using it
+ 4. Language Files
+ 5. User configuration
+
+
+ 1. Brief description
+======================
+``onis'' is a small perl-script that generates html-files out of your
+irc-logs that contain some statistic information about what's going on on
+that channel. For a sample look at the onis-homepage.
+
+
+ 2. Setting it up
+==================
+Just follow the example in 'config'. Please make sure to edit it!
+
+
+ 3. Using it
+=============
+Once set up right you can run onis with a command along these lines:
+
+octo@leeloo:~/onis-0.5.1 $ ./onis --output reports/channel.html my-logs/*
+
+ 3.1 Timestamps
+----------------
+Timestamps in the logfiles are an absolute requirement. If your logfiles
+don't have timestamps you can't use onis with them. So enable them now ;)
+
+ 3.2 Persistency
+-----------------
+Persistency is there for one reason: speed. It's simply faster to load
+already-parsed data into memory than to re-parse it again. However, since
+you start with nothing the first run will take as long as ever. 
+
+Also, since this feature isn't easy for the program there are some issues
+which might be confusing for the user. First, the program has to `know' if
+the saved data is good and fresh and useable. It does so by comparing the
+current configuration and the configuration saved with the old data. So if
+you add or remove a plugin, change the ``min_word_length'' setting or edit
+the user configuration your old-data will not be re-used and overwritten.
+
+The second issue effects only the ``Eggdrop'' parser: For persistency to
+work the program has to determine the ABSOLUTE time of each line (i.e. the
+date and time to at least the accuracy of one minute). The eggdrop version
+I use (1.6.15) saves such a date/time entry at the end of each logfile.
+That means that as long as the end of the file isn't written (i.e. the
+whole day it covers) onis is unable to determine the date of that file. So
+running onis every 15 minutes changes the random quotes picked but that's
+it. It will not add the latest file unless the date is written which
+happends at midnight.
+
+ 3.3 Purge Logs
+----------------
+Please be very carefull with this option. This is a new, unstable and
+hardly tested feature! There may be bugs and they may delete your logfiles
+(if you use this feature, that is). Don't yell at me if you accidentially
+get rid of two years worth of logs.. It is possible to use ``purge_logs''
+without activating ``use_persistency''. That's your own damn fault.
+You have been warned.
+
+There are two modes of operation:
+- ``truncate'' deletes the content of a parsed logfile. The logfile itself
+               survives, so that clients that don't create new logs
+	       automatically don't fall on their face.
+- ``delete''   deletes the file itself. That might come in handy when a
+               client creates a new logfile every day.
+
+For both modes it is essential that onis can open the logfiles in
+write-mode. It _could_ delete files without the write-bit set, but it
+won't for obvious reasons.
+
+ 3.4 Data aging
+----------------
+This is a experimental feature introduced in 0.7.0: Since there is a lot
+of absolutely useless data in the persistency files, the data gathered now
+ages over the time. This may result in weird effects and I am not quite
+sure it works as expected, so I'll have an eye on it and hopefully improve
+it as needed ;) Anyways, here's what I do:
+  Idents have a line-counter. This counter is decremented one tenth per
+run and afterwards rounded down. This means, that you have to write at
+very least one line every day. If an ident writes 120 lines, it will be
+deleted after 30 runs (one month, when run dayly) unless he/she writes
+some lines in the meantime.. Obviously this might be a problem for persons
+who run onis hourly..
+  The nicks and words age a little differently: For everyitem there is an
+``age'' and a ``ttl'' (time to life) setting. With every occurence the age
+is reset to zero and ttl increased. At the end of each session ``ttl'' is
+decreased by ``age'' and afterwards ``age'' is increased by one. If
+``ttl'' becomes smaller than one the record is deleted.
+  In the future I will propably switch to keeping a timestamp and
+calculating days, rather than counting runs, but I wanted to try this
+approach first..
+
+
+ 4. Language Files
+===================
+onis 0.4.3 has a first experimental support for translations. I don't
+speak any languages other than english and german so I'm hoping for
+volunteers to send in more translations. The language-files are very very
+simple, so my mom _could_ create them ;) I'll use a simple example:
+
+-- BEGIN: fooish.lang --
+# Language file for Fooish
+"foobar": "translation"; # Should be fixed!
+"Something": "Translation one", "Translation two";
+-- END:   fooish.lang --
+
+One can observe the following rules:
+- Everything outside of double-quotes is ignored. Colons and semi-colons
+  should be added anyways.
+- Everything after an ``hash'' (`#') (up to the end of the line) is a
+  comment and will be ignored. (Except when inside quotes, of course)
+- The first string in a line is the original, all strings after that are
+  translations. (If there is more than one translation for a given phrase
+  a random one will be choosen at runtime)
+- If no translation can bve found the original string will be used.
+- The string provided here will be fed to a printf-call. DO NOT CHANGE any
+  of those `%s', `%u', `%.1f' etc. thingies, since they will be replaced
+  by whatever makes sense.
+
+If you have any problems with this, please let me know.
+
+
+ 5. User configuration
+=======================
+Starting with version 0.4.7 onis offers the ability to configure (or
+hardcode) a user configuration. The user configuration is able to:
+- map one or more hostmasks to a user,
+- specify a realname for a user,
+- add a link to the user's homepage and
+- add an image to the user.
+- ignore users
+
+The configuration file (default: ``users.conf'') has the following syntax:
+
+-- BEGIN: users.conf --
+# User configuration for #channel
+this_username
+{
+	name:	Realname;
+	host:	*!real*@*.provider.com;
+	link:	http://homepage.url/;
+	image:	http://homepage.url/my_pic.png;
+}
+-- END:   users.conf --
+
+As you can see each record starts with a username followed by curly
+brackets which contain the settings for this username. The settings are in
+the form ``key: value;'' and valid keys (as of now) are ``name'',
+``host'', ``link'' and ``image''. Each setting can come in any order and
+as often as needed. If more than one `name', `link' or `image' is set one
+will be chosen randomly at runtime.
+- ``name'' Sets the realname for this nick. This name is set as ``title''
+  for the call containing the username, which some browsers display as
+  tooltip.
+- ``host'' sets the hostmask for this username. You can use `*' and `?'
+  which are interpreted as bash-like wildcards, i.e. `*' is a string of
+  any length (including empty) and `?' is any character (which must be
+  present). Oh, and the user-flags (like `~', `+', etc) are removed before
+  matching against this string, so you should not specify them here.
+- ``link'' sets the users homepage. A link to this homepage will be
+  included in the statistics page.
+- ``image'' specifies the URL of an image which will be displayed in later
+  versions. The URL is inserted as-is without ANY checking. This means
+  that it you enter a relative-URL it must be relative to the
+  output-file's location.
+
+There is one special user, ``ignore''. Every nick that matches the
+enclosed ``host'' settings will be ignored.
+
+Everything after a hash-sign `#' up to the end of the line is considered a
+comment and is removed before processing the config. But I think you've
+guessed that ;)
+
+Keep in mind that changing the user configuration renders your persistency
+file useless and it (the persistency file) will be deleted the next time
+you run onis! (Read section 3.2!)
+--
+octo (at verplant.org)
