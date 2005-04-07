@@ -93,6 +93,13 @@ creating the object using B<new>.
 Returns the data associated with the given I<$name>/I<$key> pair or an empty
 list if no data has been stored under this tupel before..
 
+=item B<$data-E<gt>keys> (I<$name>, [I<$field>, ...])
+
+Returns a list of all the keys defined for this name. If one field is given the
+list will be sorted by that field's values, if more fields are given the list
+is sorted with the first field taking precedence over the others. If no field
+is supplied the order is undefined.
+
 =back
 
 =head1 INTERNALS
@@ -121,11 +128,6 @@ can store metadata there (table name, credentials, whatever..).
 Backend modules will probably read the entire data at startup and save
 everything at the end. Another strategy might be reading (at least trying to)
 an entry when it's first tried to B<get>..
-
-Another problem might be if/when a module needs a list of keys. I think almost
-all plugins need this.. I'll probably add a B<keys> method to which you can
-tell which field to use for sorting.. That might make it a lot easier for
-database-backends..
 
 =head1 AUTHOR
 
