@@ -21,7 +21,7 @@ everyone inbetween scaled into this range?
 
 - Another thing that would be useful is a config option for some HTML that is
 put at the top of each stats page; so you can have links to other pages and
-other things
+other things.
 
 Next few steps:
 - Maybe use locales for m/\w/ and the like
