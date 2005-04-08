@@ -37,14 +37,21 @@ use Onis::Config qw/get_config parse_argv read_config/;
 use File::Basename qw/dirname/;
 use Fcntl qw/:flock/;
 
-use vars qw/$VERSION/;
+use vars qw/$VERSION $REVISION/;
 
-$VERSION = '0.7.2';
+$VERSION = '';
+$REVISION = '$LastChangedRevision$';
+
+if (!$VERSION)
+{
+	$VERSION = $REVISION;
+	$VERSION =~ s/^\D*(\d+).*/r$1/;
+}
 
 our $FILEINFO;
 our $PURGE_LOGS = 0;
 
-print STDERR $/, __FILE__, ': $Id: onis,v 1.18 2005/01/21 18:59:59 octo Exp $' if ($::DEBUG);
+print STDERR $/, __FILE__, ': $Id$' if ($::DEBUG);
 
 parse_argv (@ARGV);
 read_config (get_config ('config') ? get_config ('config') : 'config');
