@@ -62,6 +62,8 @@ if (get_config ('storage_module'))
 	unshift (@Onis::Data::Persistent::ISA, $mod_name);
 }
 
+return (0);
+
 =head1 INTERFACE
 
 The child-modules have to provide the following interface:
@@ -132,5 +134,3 @@ Florian octo Forster, L<octo@verplant.org>. Any comments welcome as long as I
 haven't started implementing this ;)
 
 =cut
-
-exit (0);
