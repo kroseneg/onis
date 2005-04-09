@@ -80,17 +80,17 @@ world - a table. The name must be unique for each calling method's namespace.
 
 Since this is a constructor it returns an object. The object "knows" the folling methods:
 
+=item B<$data-E<gt>get> (I<$key>) 
+
+Returns the data associated with the given I<$key> pair or an empty list if no
+data has been stored under this tupel before..
+
 =item B<$data-E<gt>put> (I<$key>, I<@fields>)
 
 Stores the given values in the data structure. How this is done is described
 below in L<another paragraph>. Doesn't return anything. The number of entries
 in I<@fields> has to match the number of entries in I<@field_names> when
 creating the object using B<new>.
-
-=item B<$data-E<gt>get> (I<$key>) 
-
-Returns the data associated with the given I<$key> pair or an empty list if no
-data has been stored under this tupel before..
 
 =item B<$data-E<gt>keys> ([I<$field>, ...])
 
