@@ -39,12 +39,14 @@ our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'cou
 
 
 
-@Onis::Data::Core::EXPORT_OK = qw#get_all_nicks get_channel
-	nick_to_ident
-	ident_to_nick ident_to_name
-	get_main_nick
-	get_total_lines nick_rename print_output
-	register_plugin store get_print_name#;
+@Onis::Data::Core::EXPORT_OK =
+qw(
+	store unsharp calculate_nicks 
+
+	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick
+	ident_to_print_name get_print_name get_total_lines nick_rename
+	print_output register_plugin merge_idents
+);
 @Onis::Data::Core::ISA = ('Exporter');
 
 our $DATA = init ('$DATA', 'hash');
@@ -53,9 +55,11 @@ our $PluginCallbacks = {};
 our $OUTPUT   = [];
 our @AllNicks = ();
 our @ALLNAMES = ();
-our %NickMap = ();
+
+our %NickToNick = ();
 our %NickToIdent = ();
 our %IdentToNick = ();
+
 our $LASTRUN_DAYS = 0;
 
 
@@ -329,8 +333,10 @@ only once and so does every nick.
 
 sub calculate_nicks
 {
-	my $nicks  = {};
-	my $idents = {};
+	my $nicks      = {};
+	my $idents     = {};
+	my $name2nick  = {};
+	my $name2ident = {};
 	
 	for ($ChatterList->keys ())
 	{
@@ -338,10 +344,6 @@ sub calculate_nicks
 		my ($nick, $ident) = split (m/!/, $chatter);
 		my $name = host_to_username ($chatter);
 		my ($counter) = $ChatterList->get ($chatter);
-
-		my $temp = $name ? $name : $ident;
-
-		next if (lc ($name) eq 'ignore');
 
 		$nicks->{$nick}{$temp} = 0 unless (defined ($nicks->{$nick}{$temp}));
 		$nicks->{$nick}{$temp} += $counter;
@@ -351,29 +353,30 @@ sub calculate_nicks
 	{
 		my $this_nick = $_;
 		my $this_ident = 'unidentified';
+		my $this_name = '';
 		my $this_total = 0;
 		my $this_max = 0;
-		my $this_ident_is_user = 0;
 
 		for (keys %{$nicks->{$this_nick}})
 		{
 			my $ident = $_;
+			my $name = ident_to_name ($ident);
 			my $num = $nicks->{$this_nick}{$ident};
 			
 			$this_total += $num;
 
-			if ($ident =~ m/@/) # $ident is a (user)name
+			if ($name)
 			{
-				if (($num >= $this_max) or !$this_ident_is_user)
+				if (($num >= $this_max) or !$this_name)
 				{
 					$this_max = $num;
 					$this_ident = $ident;
-					$this_ident_is_user = 1;
+					$this_name = $name;
 				}
 			}
 			else
 			{
-				if (($num >= $this_max) and !$this_ident_is_user)
+				if (($num >= $this_max) and !$this_name)
 				{
 					$this_max = $num;
 					$this_ident = $ident;
@@ -385,8 +388,19 @@ sub calculate_nicks
 
 		if ($this_ident ne 'unidentified')
 		{
-			$idents->{$this_ident}{$this_nick} = 0 unless (defined ($idents->{$this_ident}{$this_nick}));
-			$idents->{$this_ident}{$this_nick} += $this_total;
+			if ($name)
+			{
+				$name2nick->{$this_name}{$this_nick} = 0 unless (defined ($names->{$this_name}{$this_nick}));
+				$name2nick->{$this_name}{$this_nick} += $this_total;
+
+				$name2ident->{$this_name}{$this_ident} = 0 unless (defined ($names->{$this_name}{$this_ident}));
+				$name2ident->{$this_name}{$this_ident} += $this_total;
+			}
+			else
+			{
+				$idents->{$this_ident}{$this_nick} = 0 unless (defined ($idents->{$this_ident}{$this_nick}));
+				$idents->{$this_ident}{$this_nick} += $this_total;
+			}
 		}
 		elsif ($::DEBUG & 0x100)
 		{
@@ -406,7 +420,7 @@ sub calculate_nicks
 		for (@nicks)
 		{
 			my $nick = $_;
-			my $num = $nicks_of_ident->{$this_ident}{$nick};
+			my $num = $idents->{$this_ident}{$nick};
 
 			if ($num > $this_max)
 			{
@@ -425,12 +439,69 @@ sub calculate_nicks
 		for (@other_nicks, $this_nick)
 		{
 			push (@AllNicks, $_);
-			$NickMap{$_} = $this_nick;
-			# FIXME
+			$NickToNick{$_} = $this_nick;
 			$NickToIdent{$_} = $this_ident;
 		}
 
 		$IdentToNick{$this_ident} = $this_nick;
+	}
+
+	for (keys %$name2nick)
+	{
+		my $name = $_;
+		my $max_num = 0;
+		my $max_nick = '';
+		my $max_ident = '';
+
+		my @other_nicks = ();
+		my @other_idents = ();
+
+		for (keys %{$name2nick->{$name}})
+		{
+			my $nick = $_;
+			my $num = $name2nick->{$name}{$nick};
+
+			if ($num > $max_num)
+			{
+				push (@other_nicks, $max_nick) if ($max_nick);
+				$max_nick = $nick;
+				$max_num  = $num;
+			}
+			else
+			{
+				push (@other_nicks, $nick);
+			}
+		}
+
+		$max_num = 0;
+		for (keys %{$name2ident->{$name}})
+		{
+			my $ident = $_;
+			my $num = $name2ident->{$name}{$ident};
+
+			if ($num > $max_num)
+			{
+				push (@other_idents, $max_ident) if ($max_ident);
+				$max_ident = $ident;
+				$max_num  = $num;
+			}
+			else
+			{
+				push (@other_idents, $ident);
+			}
+		}
+
+		for (@other_nicks, $max_nick)
+		{
+			push (@AllNicks, $_);
+			$NickToNick{$_} = $max_nick;
+			$NickToIdent{$_} = $max_ident;
+		}
+
+		for (@other_idents, $max_ident)
+		{
+			$IdentToNick{$_} = $max_nick;
+		}
 	}
 }
 
@@ -488,9 +559,9 @@ Returns the main nick for I<$nick> or an empty string if the nick is unknown..
 sub get_main_nick
 {
 	my $nick = shift;
-	if (defined ($NickMap{$nick}))
+	if (defined ($NickToNick{$nick}))
 	{
-		return ($NickMap{$nick});
+		return ($NickToNick{$nick});
 	}
 	else
 	{
@@ -500,16 +571,29 @@ sub get_main_nick
 
 =item I<$ident> = B<nick_to_ident> (I<$nick>)
 
-Returns the ident for this nick or an empty string if unknown.
+Returns the ident for this nick or an empty string if unknown. Before
+B<calculate_nicks> is run it will use the database to find the most recent
+mapping. After B<calculate_nicks> is run the calculated mapping will be used.
 
 =cut
 
 sub nick_to_ident
 {
 	my $nick = shift;
+	my $ident = '';
 
-	my ($ident) = $Nick2Ident->get ($nick);
-	$ident ||= '';
+	if (%NickToIdent)
+	{
+		if (defined ($NickToIdent{$nick}))
+		{
+			$ident = $NickToIdent{$nick};
+		}
+	}
+	else
+	{
+		($ident) = $Nick2Ident->get ($nick);
+		$ident ||= '';
+	}
 
 	return ($ident);
 }
@@ -524,13 +608,7 @@ sub ident_to_nick
 {
 	my $ident = shift;
 
-	if (!defined ($ident)
-			or (lc ($ident) eq 'ignore')
-			or (lc ($ident) eq 'unidentified'))
-	{
-		return ('');
-	}
-	elsif (defined ($IdentToNick{$ident}))
+	if (defined ($IdentToNick{$ident}))
 	{
 		return ($IdentToNick{$ident});
 	}
@@ -540,14 +618,14 @@ sub ident_to_nick
 	}
 }
 
-=item I<$name> = B<ident_to_name> (I<$ident>)
+=item I<$name> = B<ident_to_print_name> (I<$ident>)
 
 Returns the printable version of the name for the chatter identified by
 I<$ident>. Returns an empty string if the ident is not known.
 
 =cut
 
-sub ident_to_name
+sub ident_to_print_name
 {
 	my $ident = shift;
 	my $nick = ident_to_nick ($ident);
