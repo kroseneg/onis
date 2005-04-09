@@ -39,7 +39,7 @@ our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'cou
 
 
 
-@Onis::Data::Core::EXPORT_OK = qw#all_nicks get_channel
+@Onis::Data::Core::EXPORT_OK = qw#get_all_nicks get_channel
 	nick_to_ident
 	ident_to_nick ident_to_name
 	get_main_nick
@@ -55,7 +55,7 @@ our @AllNicks = ();
 our @ALLNAMES = ();
 our %NickMap = ();
 our %NickToIdent = ();
-our %IDENT2NICK = ();
+our %IdentToNick = ();
 our $LASTRUN_DAYS = 0;
 
 
@@ -307,7 +307,7 @@ sub unsharp
 
 Iterates over all chatters found so far, trying to figure out which belong to
 the same person. This function has to be called before any calls to
-B<all_nicks>, B<get_main_nick>, B<get_print_name> and B<nick_to_ident>.
+B<get_all_nicks>, B<get_main_nick>, B<get_print_name> and B<nick_to_ident>.
 
 This is normally the step after having parsed all files and before doing any
 output. After this function has been run all the other informative functions
@@ -340,6 +340,8 @@ sub calculate_nicks
 		my ($counter) = $ChatterList->get ($chatter);
 
 		my $temp = $name ? $name : $ident;
+
+		next if (lc ($name) eq 'ignore');
 
 		$nicks->{$nick}{$temp} = 0 unless (defined ($nicks->{$nick}{$temp}));
 		$nicks->{$nick}{$temp} += $counter;
@@ -424,20 +426,21 @@ sub calculate_nicks
 		{
 			push (@AllNicks, $_);
 			$NickMap{$_} = $this_nick;
+			# FIXME
 			$NickToIdent{$_} = $this_ident;
 		}
 
-		$IDENT2NICK{$this_ident} = $this_nick;
+		$IdentToNick{$this_ident} = $this_nick;
 	}
 }
 
-=item I<@nicks> = B<all_nicks> ()
+=item I<@nicks> = B<get_all_nicks> ()
 
 Returns an array of all seen nicks.
 
 =cut
 
-sub all_nicks
+sub get_all_nicks
 {
 	return (@AllNicks);
 }
@@ -504,14 +507,11 @@ Returns the ident for this nick or an empty string if unknown.
 sub nick_to_ident
 {
 	my $nick = shift;
-	if (defined ($NickToIdent{$nick}))
-	{
-		return ($NickToIdent{$nick});
-	}
-	else
-	{
-		return ('');
-	}
+
+	my ($ident) = $Nick2Ident->get ($nick);
+	$ident ||= '';
+
+	return ($ident);
 }
 
 =item I<$nick> = B<ident_to_nick> (I<$ident>)
@@ -530,9 +530,9 @@ sub ident_to_nick
 	{
 		return ('');
 	}
-	elsif (defined ($IDENT2NICK{$ident}))
+	elsif (defined ($IdentToNick{$ident}))
 	{
-		return ($IDENT2NICK{$ident});
+		return ($IdentToNick{$ident});
 	}
 	else
 	{
@@ -711,7 +711,7 @@ Merges idents. Does magic, don't interfere ;)
 
 sub merge_idents
 {
-	my @idents = keys (%IDENT2NICK);
+	my @idents = keys (%IdentToNick);
 
 	for (@idents)
 	{
