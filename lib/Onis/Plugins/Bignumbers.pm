@@ -3,8 +3,7 @@ package Onis::Plugins::Bignumbers;
 use strict;
 use warnings;
 
-use Onis::Config (qw(get_config));
-use Onis::Html (qw(html_escape get_filehandle));
+use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(get_main_nick register_plugin));
 use Onis::Data::Persistent ();
@@ -107,8 +106,10 @@ sub calculate
 
 sub output
 {
-	my $first;
-	my $second;
+	my $first_nick;
+	my $first_name;
+	my $second_nick;
+	my $second_name;
 	my $trans;
 
 	my $fh = get_filehandle ();
@@ -120,92 +121,100 @@ sub output
     <th>$trans</th>
   </tr>
 EOF
-	($first, $second) = sort_by_field ('questions');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('questions');
+	if ($first_nick)
 	{
-		my $percent = 100 * $CalcData->{$first}{'questions'} / $CalcData->{$first}{'lines'};
+		my $percent = 100 * $CalcData->{$first_nick}{'questions'} / $CalcData->{$first_nick}{'lines'};
 		my $trans = translate ('questions0: %s %2.1f%%');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $percent);
+		printf $fh ($trans, $first_name, $percent);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$percent = 100 * $CalcData->{$second}{'questions'} / $CalcData->{$second}{'lines'};
+			$percent = 100 * $CalcData->{$second_nick}{'questions'} / $CalcData->{$second_nick}{'lines'};
 			$trans = translate ('questions1: %s %2.1f%%');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $percent);
+			printf $fh ($trans, $second_name, $percent);
 			print $fh '</span>';
 		}
 		
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('uppercase');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('uppercase');
+	if ($first_nick)
 	{
-		my $percent = 100 * $CalcData->{$first}{'uppercase'} / $CalcData->{$first}{'lines'};
+		my $percent = 100 * $CalcData->{$first_nick}{'uppercase'} / $CalcData->{$first_nick}{'lines'};
 		my $trans = translate ('yells0: %s %2.1f%%');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $percent);
+		printf $fh ($trans, $first_name, $percent);
 
-		if ($second)
+		if ($second_nick)
 		{
-			$percent = 100 * $CalcData->{$second}{'uppercase'} / $CalcData->{$second}{'lines'};
+			$percent = 100 * $CalcData->{$second_nick}{'uppercase'} / $CalcData->{$second_nick}{'lines'};
 			$trans = translate ('yells1: %s %2.1f%%');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $percent);
+			printf $fh ($trans, $second_name, $percent);
 			print $fh "</span>";
 		}
 
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('smiley_happy');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('smiley_happy');
+	if ($first_nick)
 	{
-		my $percent = 100 * $CalcData->{$first}{'smiley_happy'} / $CalcData->{$first}{'lines'};
+		my $percent = 100 * $CalcData->{$first_nick}{'smiley_happy'} / $CalcData->{$first_nick}{'lines'};
 		my $trans = translate ('happy0: %s %2.1f%%');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $percent);
+		printf $fh ($trans, $first_name, $percent);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$percent = 100 * $CalcData->{$second}{'smiley_happy'} / $CalcData->{$second}{'lines'};
+			$percent = 100 * $CalcData->{$second_nick}{'smiley_happy'} / $CalcData->{$second_nick}{'lines'};
 			$trans = translate ('happy1: %s %2.1f%%');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $percent);
+			printf $fh ($trans, $second_name, $percent);
 			print $fh "</span>";
 		}
 		
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('smiley_sad');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('smiley_sad');
+	if ($first_nick)
 	{
-		my $percent = 100 * $CalcData->{$first}{'smiley_sad'} / $CalcData->{$first}{'lines'};
+		my $percent = 100 * $CalcData->{$first_nick}{'smiley_sad'} / $CalcData->{$first_nick}{'lines'};
 		my $trans = translate ('sad0: %s %2.1f%%');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $percent);
+		printf $fh ($trans, $first_name, $percent);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$percent = 100 * $CalcData->{$second}{'smiley_sad'} / $CalcData->{$second}{'lines'};
+			$percent = 100 * $CalcData->{$second_nick}{'smiley_sad'} / $CalcData->{$second_nick}{'lines'};
 			$trans = translate ('sad1: %s %2.1f%%');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $percent);
+			printf $fh ($trans, $second_name, $percent);
 			print $fh "</span>";
 		}
 		
@@ -250,18 +259,20 @@ EOF
 		{
 			my $avg = $CalcData->{$longest}{'chars'} / $CalcData->{$longest}{'lines'};
 			my $trans = translate ('max chars0: %s %1.1f');
+			$first_name = nick_to_name ($longest) || $longest;
 			
 			print $fh "  <tr>\n    <td>";
-			printf $fh ($trans, $longest, $avg);
+			printf $fh ($trans, $first_name, $avg);
 			
 			if ($longest2)
 			{
 				$avg = $CalcData->{$longest2}{'chars'} / $CalcData->{$longest2}{'lines'};
 				$trans = translate ('max chars1: %s %1.1f');
+				$second_name = nick_to_name ($longest2) || $longest2;
 
 				print $fh "<br />\n",
 				qq#      <span class="small">#;
-				printf $fh ($trans, $longest2, $avg);
+				printf $fh ($trans, $second_name, $avg);
 				print $fh "</span>";
 			}
 
@@ -278,18 +289,20 @@ EOF
 		{
 			my $avg = $CalcData->{$shortest}{'chars'} / $CalcData->{$shortest}{'lines'};
 			my $trans = translate ('min chars0: %s %1.1f');
+			$first_name = nick_to_name ($shortest) || $shortest;
 			
 			print $fh "  <tr>\n    <td>";
-			printf $fh ($trans, $shortest, $avg);
+			printf $fh ($trans, $first_name, $avg);
 			
 			if ($shortest2)
 			{
 				$avg = $CalcData->{$shortest2}{'chars'} / $CalcData->{$shortest2}{'lines'};
 				$trans = translate ('min chars1: %s %1.1f');
+				$second_name = nick_to_name ($shortest2) || $shortest2;
 
 				print $fh "<br />\n",
 				qq#      <span class="small">#;
-				printf $fh ($trans, $shortest2, $avg);
+				printf $fh ($trans, $second_name, $avg);
 				print $fh "</span>";
 			}
 			print $fh "</td>\n  </tr>\n";
@@ -299,8 +312,8 @@ EOF
 	{
 		my @names = sort_by_field ('words');
 
-		$first = '';
-		$second = '';
+		$first_nick = '';
+		$second_nick = '';
 
 		my $chan_words = 0;
 		my $chan_lines = 0;
@@ -313,29 +326,31 @@ EOF
 		
 		if (@names)
 		{
-			$first = shift (@names);
+			$first_nick = shift (@names);
 		}
 		if (@names)
 		{
-			$second = shift (@names);
+			$second_nick = shift (@names);
 		}
 
-		if ($first)
+		if ($first_nick)
 		{
-			my $avg = $CalcData->{$first}{'words'} / $CalcData->{$first}{'lines'};
+			my $avg = $CalcData->{$first_nick}{'words'} / $CalcData->{$first_nick}{'lines'};
 			my $trans = translate ('max words0: %s %1.1f');
+			$first_name = nick_to_name ($first_nick) || $first_nick;
 			
 			print $fh "  <tr>\n    <td>";
-			printf $fh ($trans, $first, $avg);
+			printf $fh ($trans, $first_name, $avg);
 
-			if ($second)
+			if ($second_nick)
 			{
-				$avg = $CalcData->{$second}{'words'} / $CalcData->{$second}{'lines'};
+				$avg = $CalcData->{$second_nick}{'words'} / $CalcData->{$second_nick}{'lines'};
 				$trans = translate ('max words1: %s %1.1f');
+				$second_name = nick_to_name ($second_nick) || $second_nick;
 
 				print $fh "<br />\n",
 				qq#      <span class="small">#;
-				printf $fh ($trans, $second, $avg);
+				printf $fh ($trans, $second_name, $avg);
 				print $fh "</span>";
 			}
 
@@ -367,7 +382,7 @@ sub sort_by_field
 			and ($CalcData->{$_}{'lines'} != 0)
 			and defined ($CalcData->{$_}{$field})
 	}
-	(keys (%{$CalcData->}));
+	(keys (%$CalcData));
 	
 	while (scalar (@retval) < 2)
 	{
