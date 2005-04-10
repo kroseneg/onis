@@ -44,7 +44,7 @@ our $NickCharsCounter = Onis::Data::Persistent->new ('NickCharsCounter', 'nick',
 
 our $QuoteCache = {}; # Saves per-nick information without any modification
 our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
-our $NickData = {}:  # Same as above, but for nicks rather than quotes.
+our $NickData = {};  # Same as above, but for nicks rather than quotes.
 
 our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 our $QuoteCacheSize = 10;
@@ -273,7 +273,7 @@ sub add
 	{
 		@counter = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
 	}
-	$counter[$hour]++
+	$counter[$hour]++;
 	$NickLinesCounter->put ($nick, @counter);
 
 	@counter = $NickWordsCounter->get ($nick);
@@ -721,7 +721,7 @@ EOF
 				$total = $NickData->{$nick}{'chars_total'};
 			}
 
-			my $title = $realname;
+			my $title = $name ? get_realname ($name) : '';
 			if (!$title)
 			{
 				$title = "User: $name; " if ($name);

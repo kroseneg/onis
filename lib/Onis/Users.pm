@@ -7,7 +7,11 @@ use Onis::Config qw#get_config#;
 use Onis::Data::Core qw(nick_to_ident);
 use Onis::Data::Persistent;
 
-@Onis::Users::EXPORT_OK = qw#host_to_username nick_to_username get_link get_image get_realname#;
+@Onis::Users::EXPORT_OK =
+(qw(
+	ident_to_name chatter_to_name nick_to_name name_to_ident
+	get_realname get_link get_image
+));
 @Onis::Users::ISA = ('Exporter');
 
 =head1 NAME

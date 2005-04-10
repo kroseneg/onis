@@ -56,13 +56,14 @@ if (get_config ('storage_module'))
 	if ($@)
 	{
 		print STDERR $/, __FILE__, ": Could not load storage module ``$StoreModule''. Are you sure it exists?";
+		print STDERR $/, __FILE__, ": Error while loading was: $@";
 		exit (1);
 	}
 
 	unshift (@Onis::Data::Persistent::ISA, $mod_name);
 }
 
-return (0);
+return (1);
 
 =head1 INTERFACE
 

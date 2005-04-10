@@ -107,14 +107,14 @@ sub keys
 		push (@field_indizes, $obj->{'field_index'}{$field});
 	}
 
-	return (sort (sub
-	{
+	return (sort
+	sub {
 		for (@field_indizes)
 		{
 			my $d = $obj->{'data'}{$a}[$_] cmp $obj->{'data'}{$b}[$_];
 			return ($d) if ($d);
 		}
-	}, @keys));
+	}, @keys);
 }
 
 =head1 AUTHOR

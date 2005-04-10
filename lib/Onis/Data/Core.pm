@@ -43,11 +43,9 @@ qw(
 	store unsharp calculate_nicks 
 
 	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick
-	get_total_lines nick_rename print_output register_plugin merge_idents
+	get_total_lines nick_rename print_output register_plugin
 );
 @Onis::Data::Core::ISA = ('Exporter');
-
-our $DATA = init ('$DATA', 'hash');
 
 our $PluginCallbacks = {};
 our $OUTPUT   = [];
@@ -82,30 +80,9 @@ if (get_config ('unsharp'))
 	}
 }
 
-if (!%$DATA)
-{
-		$DATA->{'idents_of_nick'} = {};
-		$DATA->{'channel'} = {};
-		$DATA->{'total_lines'} = 0;
-}
-
-if (defined ($DATA->{'lastrun'}))
-{
-	my $last = $DATA->{'lastrun'};
-	my $now  = time;
-
-	my $diff = ($now - $last) % 86400;
-
-	if ($diff > 0)
-	{
-		$DATA->{'lastrun'} = $now;
-		$LASTRUN_DAYS = $diff;
-	}
-}
-else
-{
-	$DATA->{'lastrun'} = time;
-}
+# TODO
+# - lastrun
+# - total lines
 
 my $VERSION = '$Id: Core.pm,v 1.14 2004/10/31 15:00:32 octo Exp $';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
@@ -170,6 +147,7 @@ sub store
 	elsif (($ident) = $Nick2Ident->get ($nick))
 	{
 		my $chatter = "$nick!$ident";
+		my $counter;
 		($user, $host) = split (m/@/, $ident);
 
 		$data->{'host'} = $host;
@@ -217,7 +195,7 @@ sub store
 		}
 	}
 
-	# FIXME
+	# TODO
 	#$DATA->{'total_lines'}++;
 
 	if (defined ($PluginCallbacks->{$type}))
@@ -349,8 +327,8 @@ sub calculate_nicks
 		my $name = ident_to_name ($ident);
 		my ($counter) = $ChatterList->get ($chatter);
 
-		$nicks->{$nick}{$temp} = 0 unless (defined ($nicks->{$nick}{$temp}));
-		$nicks->{$nick}{$temp} += $counter;
+		$nicks->{$nick}{$ident} = 0 unless (defined ($nicks->{$nick}{$ident}));
+		$nicks->{$nick}{$ident} += $counter;
 	}
 
 	for (keys %$nicks)
@@ -392,12 +370,12 @@ sub calculate_nicks
 
 		if ($this_ident ne 'unidentified')
 		{
-			if ($name)
+			if ($this_name)
 			{
-				$name2nick->{$this_name}{$this_nick} = 0 unless (defined ($names->{$this_name}{$this_nick}));
+				$name2nick->{$this_name}{$this_nick} = 0 unless (defined ($name2nick->{$this_name}{$this_nick}));
 				$name2nick->{$this_name}{$this_nick} += $this_total;
 
-				$name2ident->{$this_name}{$this_ident} = 0 unless (defined ($names->{$this_name}{$this_ident}));
+				$name2ident->{$this_name}{$this_ident} = 0 unless (defined ($name2nick->{$this_name}{$this_ident}));
 				$name2ident->{$this_name}{$this_ident} += $this_total;
 			}
 			else
@@ -634,7 +612,8 @@ Returns the total number of lines parsed so far.
 
 sub get_total_lines
 {
-	return ($DATA->{'total_lines'});
+	# TODO
+	#return ($DATA->{'total_lines'});
 }
 
 =item B<nick_rename> (I<$old_nick>, I<$new_nick>)
@@ -665,7 +644,7 @@ Print the output. Should be called only once..
 
 sub print_output
 {
-	if (!$DATA->{'total_lines'})
+	if (!get_total_lines ())
 	{
 		print STDERR <<'MESSAGE';
 
@@ -681,14 +660,11 @@ MESSAGE
 	}
 	
 	calculate_nicks ();
-	merge_idents ();
 
 	for (@$OUTPUT)
 	{
 		&$_ ();
 	}
-
-	delete ($DATA->{'byname'});
 }
 
 =item I<$data> = B<register_plugin> (I<$type>, I<$sub_ref>)
@@ -725,97 +701,6 @@ sub register_plugin
 	push (@{$PluginCallbacks->{$type}}, $sub_ref);
 
 	print STDERR $/, __FILE__, ': ', scalar (caller ()), " registered for ``$type''." if ($::DEBUG & 0x800);
-}
-
-=item B<merge_idents> ()
-
-Merges idents. Does magic, don't interfere ;)
-
-=cut
-
-sub merge_idents
-{
-	my @idents = keys (%IdentToNick);
-
-	for (@idents)
-	{
-		my $ident = $_;
-		my $name = ident_to_name ($ident);
-
-		if (!defined ($DATA->{'byident'}{$ident}))
-		{
-			next;
-		}
-		
-		if (!defined ($DATA->{'byname'}{$name}))
-		{
-			$DATA->{'byname'}{$name} = {};
-		}
-
-		add_hash ($DATA->{'byname'}{$name}, $DATA->{'byident'}{$ident});
-	}
-}
-
-sub add_hash
-{
-	my $dst = shift;
-	my $src = shift;
-
-	my @keys = keys (%$src);
-
-	for (@keys)
-	{
-		my $key = $_;
-		my $val = $src->{$key};
-
-		if (!defined ($dst->{$key}))
-		{
-			$dst->{$key} = $val;
-		}
-		elsif (!ref ($val))
-		{
-			if ($val =~ m/\D/)
-			{
-				# FIXME
-				print STDERR $/, __FILE__, ": ``$key'' = ``$val''" if ($::DEBUG);
-			}
-			else
-			{
-				$dst->{$key} += $val;
-			}
-		}
-		elsif (ref ($val) ne ref ($dst->{$key}))
-		{
-			print STDERR $/, __FILE__, ": Destination and source type do not match!" if ($::DEBUG);
-		}
-		elsif (ref ($val) eq "HASH")
-		{
-			add_hash ($dst->{$key}, $val);
-		}
-		elsif (ref ($val) eq "ARRAY")
-		{
-			my $i = 0;
-			for (@$val)
-			{
-				my $j = $_;
-				if ($j =~ m/\D/)
-				{
-					# FIXME
-					print STDERR $/, __FILE__, ": ``", $key, '[', $i, "]'' = ``$j''" if ($::DEBUG);
-				}
-				else
-				{
-					$dst->{$key}->[$i] += $j;
-				}
-				$i++;
-			}
-		}
-		else
-		{
-			my $type = ref ($val);
-			print STDERR $/, __FILE__, ": Reference type ``$type'' is not supported!", $/;
-		}
-	}
 }
 
 =back
