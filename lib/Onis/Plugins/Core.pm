@@ -393,11 +393,9 @@ sub activetimes
 {
 	my $max = 0;		# the most lines that were written in one hour..
 	my $total = 0;		# the total amount of lines we wrote..
-	my ($i, $j);		# used in for-loops
 	my $factor = 0;		# used to find a bar's height
-	my $newline = '';	# buffer variable..
 
-	my @data = @{$DATA->{'byhour'}};
+	my @data = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
 
 	my @img_urls = get_config ('vertical_images');
 	if (!@img_urls)
@@ -409,19 +407,20 @@ sub activetimes
 	
 # this for loop looks for the most amount of lines in one hour and sets
 # $most_lines
-	for ($i = 0; $i < 24; $i++)
+	for (keys %$NickData)
 	{
-		if (!defined ($data[$i]))
-		{
-			next;
-		}
+		my $nick = shift;
 
+		for (my $i = 0; $i < 24; $i++)
+		{
+			$data[$i] += $NickData->{$nick}{'chars'}[$i];
+		}
+	}
+
+	for (my $i = 0; $i < 24; $i++)
+	{
+		$max = $data[$i] if ($max < $data[$i]);
 		$total += $data[$i];
-
-		if ($data[$i] > $max)
-		{
-			$max = $data[$i];
-		}
 	}
 
 	if (!$total)
@@ -439,9 +438,9 @@ sub activetimes
 
 # this for circles through the four colors. Each color represents six hours.
 # (4 * 6 hours = 24 hours)
-	for ($i = 0; $i <= 3; $i++)
+	for (my $i = 0; $i <= 3; $i++)
 	{
-		for ($j = 0; $j <= 5; $j++)
+		for (my $j = 0; $j <= 5; $j++)
 		{
 			my $hour = (($i * 6) + $j);
 			if (!defined ($data[$hour]))
@@ -711,15 +710,22 @@ EOF
 			my $total = 0;
 			if ($SORT_BY eq 'LINES')
 			{
-				$total = $DATA->{'byname'}{$name}{'lines'};
+				$total = $NickData->{$nick}{'lines_total'};
 			}
 			elsif ($SORT_BY eq 'WORDS')
 			{
-				$total = $DATA->{'byname'}{$name}{'words'};
+				$total = $NickData->{$nick}{'words_total'};
 			}
 			else # ($SORT_BY eq 'CHARS')
 			{
-				$total = $DATA->{'byname'}{$name}{'chars'};
+				$total = $NickData->{$nick}{'chars_total'};
+			}
+
+			my $title = $realname;
+			if (!$title)
+			{
+				$title = "User: $name; " if ($name);
+				$title .= "Ident: $ident";
 			}
 			
 			if ($row_in_this_table == 0 and $col_in_this_table == 0)
@@ -736,7 +742,7 @@ EOF
 				qq#  <tr>\n#;
 			}
 			
-			print $fh "    <td>$name ($total)</td>\n";
+			print $fh qq#    <td title="$title">$name ($total)</td>\n#;
 			
 			if ($row_in_this_table == $ShortLines and $col_in_this_table == 5)
 			{
