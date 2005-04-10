@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Carp (qw(confess));
+use Exporter;
 
 =head1 NAME
 
@@ -22,6 +23,9 @@ use Onis::Language qw/translate/;
 use Onis::Users (qw(get_realname get_link get_image ident_to_name));
 use Onis::Data::Core qw#get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
 use Onis::Data::Persistent;
+
+@Onis::Plugins::Core::EXPORT_OK = (qw(get_core_nick_counters));
+@Onis::Plugins::Core::ISA = ('Exporter');
 
 our $NickLinesCounter = Onis::Data::Persistent->new ('NickLinesCounter', 'nick',
 	qw(
@@ -820,6 +824,33 @@ sub bar
 
 	return ($retval);
 }
+
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_core_nick_counters> (I<$nick>)
+
+Returns the total I<lines>, I<words> and I<characters> written by the given
+nick.
+
+=cut
+
+sub get_core_nick_counters
+{
+	my $nick = shift;
+
+	if (defined ($NickData->{$nick}))
+	{
+		return ($NickData->{$nick}{'lines_total'},
+			$NickData->{$nick}{'words_total'},
+			$NickData->{$nick}{'chars_total'});
+	}
+
+	return (qw());
+}
+
+=back
 
 =head1 AUTHOR
 
