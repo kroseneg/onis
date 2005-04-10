@@ -8,6 +8,7 @@ use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(register_plugin));
 use Onis::Data::Persistent ();
+use Onis::Users (qw(nick_to_name));
 
 register_plugin ('TEXT', \&add);
 register_plugin ('ACTION', \&add);
@@ -114,12 +115,13 @@ EOF
 		$i++;
 
 		my ($word, $count, $nick) = @$_;
+		my $name = nick_to_name ($nick) || $nick;
 		
 		print $fh "  <tr>\n",
 		qq#    <td class="numeration">$i</td>\n#,
 		qq#    <td>$word</td>\n#,
 		qq#    <td>$count</td>\n#,
-		qq#    <td class="nick">$nick</td>\n#,
+		qq#    <td class="nick">$name</td>\n#,
 		qq#  </tr>\n#;
 	}
 	print $fh "</table>\n\n";
