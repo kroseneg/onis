@@ -3,6 +3,8 @@ package Onis::Plugins::Core;
 use strict;
 use warnings;
 
+use Carp (qw(confess));
+
 =head1 NAME
 
 Onis::Plugins::Core
@@ -17,7 +19,7 @@ complicated plugin so far.
 use Onis::Config qw/get_config/;
 use Onis::Html qw/html_escape get_filehandle/;
 use Onis::Language qw/translate/;
-use Onis::Users qw/get_name get_link get_image nick_to_username/;
+use Onis::Users (qw(get_realname get_link get_image ident_to_name));
 use Onis::Data::Core qw#get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
 use Onis::Data::Persistent;
 
@@ -42,9 +44,10 @@ our $NickCharsCounter = Onis::Data::Persistent->new ('NickCharsCounter', 'nick',
 
 our $QuoteCache = {}; # Saves per-nick information without any modification
 our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
+our $NickData = {}:  # Same as above, but for nicks rather than quotes.
 
 our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
-our $QuoteCache_SIZE = 10;
+our $QuoteCacheSize = 10;
 our $QuoteMin = 30;
 our $QuoteMax = 80;
 our $WORD_LENGTH = 5;
@@ -57,14 +60,14 @@ our $DISPLAY_IMAGES = 0;
 our $DEFAULT_IMAGE = '';
 our $BAR_HEIGHT = 130;
 our $BAR_WIDTH  = 100;
-our $LONGLINES  = 50;
-our $SHORTLINES = 10;
+our $LongLines  = 50;
+our $ShortLines = 10;
 
 if (get_config ('quote_cache_size'))
 {
 	my $tmp = get_config ('quote_cache_size');
 	$tmp =~ s/\D//g;
-	$QuoteCache_SIZE = $tmp if ($tmp);
+	$QuoteCacheSize = $tmp if ($tmp);
 }
 if (get_config ('quote_min'))
 {
@@ -224,7 +227,7 @@ if (get_config ('longlines'))
 {
 	my $tmp = get_config ('longlines');
 	$tmp =~ s/\D//g;
-	$LONGLINES = $tmp if ($tmp);
+	$LongLines = $tmp if ($tmp);
 }
 if (get_config ('shortlines'))
 {
@@ -232,7 +235,7 @@ if (get_config ('shortlines'))
 	$tmp =~ s/\D//g;
 	if ($tmp or ($tmp == 0))
 	{
-		$SHORTLINES = $tmp;
+		$ShortLines = $tmp;
 	}
 }
 
@@ -301,7 +304,7 @@ sub add
 
 	if (defined ($QuoteCache->{$nick}))
 	{
-		while (scalar (@{$QuoteCache->{$nick}}) > $QuoteCache_SIZE)
+		while (scalar (@{$QuoteCache->{$nick}}) > $QuoteCacheSize)
 		{
 			shift (@{$QuoteCache->{$nick}});
 		}
@@ -323,35 +326,47 @@ sub calculate
 			{
 				lines => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
 				words => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
-				chars => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)]
+				chars => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+				lines_total => 0,
+				words_total => 0,
+				chars_total => 0
 			};
 		}
 
 		my @counter = $NickLinesCounter->get ($nick);
 		if (@counter)
 		{
+			my $sum = 0;
 			for (my $i = 0; $i < 24; $i++)
 			{
 				$NickData->{$main}{'lines'}[$i] += $counter[$i];
+				$sum += $counter[$i];
 			}
+			$NickData->{$main}{'lines_total'} = $sum;
 		}
 
 		@counter = $NickWordsCounter->get ($nick);
 		if (@counter)
 		{
+			my $sum = 0;
 			for (my $i = 0; $i < 24; $i++)
 			{
 				$NickData->{$main}{'words'}[$i] += $counter[$i];
+				$sum += $counter[$i];
 			}
+			$NickData->{$main}{'words_total'} = $sum;
 		}
 
 		@counter = $NickWordsCounter->get ($nick);
 		if (@counter)
 		{
+			my $sum = 0;
 			for (my $i = 0; $i < 24; $i++)
 			{
 				$NickData->{$main}{'words'}[$i] += $counter[$i];
+				$sum += $counter[$i];
 			}
+			$NickData->{$main}{'chars_total'} = $sum;
 		}
 
 		if (!defined ($QuoteData->{$main}))
@@ -361,7 +376,7 @@ sub calculate
 		if (defined ($QuoteCache->{$nick}))
 		{
 			my @new = sort (sub { $b->[0] <=> $a->[0] }, @{$QuoteCache->{$nick}}, @{$QuoteData->{$main}});
-			splice (@new, $QuoteCache_SIZE) if (scalar (@new) > $QuoteCache_SIZE);
+			splice (@new, $QuoteCacheSize) if (scalar (@new) > $QuoteCacheSize);
 			$QuoteData->{$main} = \@new;
 		}
 	}
@@ -455,10 +470,9 @@ sub ranking
 {
 	my $count = 0;
 
-	my @names = grep
-	{
-		defined ($DATA->{'byname'}{$_}{'words'})
-	} (keys (%{$DATA->{'byname'}}));
+	my @nicks = keys (%$NickData);
+
+	return unless (@nicks);
 	
 	my $max_lines = 1;
 	my $max_words = 1;
@@ -473,15 +487,15 @@ sub ranking
 	my $trans;
 
 	my $tmp;
-	($tmp) = sort { $DATA->{'byname'}{$b}{'lines'} <=> $DATA->{'byname'}{$a}{'lines'} } (@names);
-	$max_lines = $DATA->{'byname'}{$tmp}{'lines'} || 0;
+	($tmp) = sort { $NickData->{$b}{'lines_total'} <=> $NickData->{$a}{'lines_total'} } (@nicks);
+	$max_lines = $NickData->{$tmp}{'lines_total'} || 0;
 	
-	($tmp) = sort { $DATA->{'byname'}{$b}{'words'} <=> $DATA->{'byname'}{$a}{'words'} } (@names);
-	$max_words = $DATA->{'byname'}{$tmp}{'words'} || 0;
+	($tmp) = sort { $NickData->{$b}{'words_total'} <=> $NickData->{$a}{'words_total'} } (@nicks);
+	$max_words = $NickData->{$tmp}{'words_total'} || 0;
 	
-	($tmp) = sort { $DATA->{'byname'}{$b}{'chars'} <=> $DATA->{'byname'}{$a}{'chars'} } (@names);
-	$max_chars = $DATA->{'byname'}{$tmp}{'chars'} || 0;
-
+	($tmp) = sort { $NickData->{$b}{'chars_total'} <=> $NickData->{$a}{'chars_total'} } (@nicks);
+	$max_chars = $NickData->{$tmp}{'chars_total'} || 0;
+	
 	$trans = translate ('Most active nicks');
 	
 	print $fh "<h2>$trans</h2>\n";
@@ -542,46 +556,37 @@ EOF
 
 	for (sort
 	{
-		$DATA->{'byname'}{$b}{$sort_field} <=> $DATA->{'byname'}{$a}{$sort_field}
-	} (@names))
+		$NickData->{$b}{"${sort_field}_total"} <=> $NickData->{$a}{"${sort_field}_total"}
+	} (@nicks))
 	{
-		my $name = $_;
-		my $ident = $name;
-		my $nick = $name;
+		my $nick = $_;
+		my $ident = nick_to_ident ($nick);
+		my $name  = ident_to_name ($ident);
 
-		if (ident_to_nick ($name))
-		{
-			$nick = ident_to_nick ($name);
-		}
-		else
-		{
-			$ident = nick_to_ident ($name);
-		}
-		
 		$linescount++;
 
 		# As long as we didn't hit the 
-		# $LONGLINES-limit we continue
+		# $LongLines-limit we continue
 		# our table..
-		if ($linescount <= $LONGLINES)
+		if ($linescount <= $LongLines)
 		{
 			my $quote = translate ('-- no quote available --');
 
-			if (defined ($QuoteCache->{$nick}))
+			if (defined ($QuoteData->{$nick}))
 			{
-				my $num = scalar (@{$QuoteCache->{$nick}});
+				my $num = scalar (@{$QuoteData->{$nick}});
 				my $rand = int (rand ($num));
-				$quote = html_escape ($QuoteCache->{$nick}[$rand]);
+				$quote = html_escape ($QuoteData->{$nick}[$rand]);
 			}
 
 			my $link = '';
 			my $image = '';
-			my $title = '';
-			if ($name eq $ident)
+			my $realname = '';
+			if ($name)
 			{
-				$link = get_link ($name);
-				$image = get_image ($name);
-				$title = get_name ($name);
+				$link     = get_link ($name);
+				$image    = get_image ($name);
+				$realname = get_realname ($name);
 			}
 			
 			print $fh "  <tr>\n",
@@ -614,9 +619,11 @@ EOF
 				print $fh "</td>\n";
 			}
 			
+			my $title = $realname;
 			if (!$title)
 			{
-				$title = "Ident: $ident";
+				$title = "User: $name; " if ($name);
+				$title .= "Ident: $ident";
 			}
 			print $fh qq#    <td class="nick" title="$title">#;
 
@@ -634,13 +641,13 @@ EOF
 				print $fh qq#    <td class="bar">#;
 				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'BAR'))
 				{
-					my $code = bar ($max_lines, $DATA->{'byname'}{$name}{'lines_time'});
+					my $code = bar ($max_lines, $NickData->{$nick}{'lines'});
 					print $fh $code;
 				}
 				print $fh '&nbsp;' if ($DISPLAY_LINES eq 'BOTH');
 				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'NUMBER'))
 				{
-					print $fh $DATA->{'byname'}{$name}{'lines'};
+					print $fh $NickData->{$nick}{'lines_total'};
 				}
 				print $fh "</td>\n";
 			}
@@ -650,13 +657,13 @@ EOF
 				print $fh qq#    <td class="bar">#;
 				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'BAR'))
 				{
-					my $code = bar ($max_words, $DATA->{'byname'}{$name}{'words_time'});
+					my $code = bar ($max_words, $NickData->{$nick}{'words'});
 					print $fh $code;
 				}
 				print $fh '&nbsp;' if ($DISPLAY_WORDS eq 'BOTH');
 				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'NUMBER'))
 				{
-					print $fh $DATA->{'byname'}{$name}{'words'};
+					print $fh $NickData->{$nick}{'words_total'};
 				}
 				print $fh "</td>\n";
 			}
@@ -666,29 +673,27 @@ EOF
 				print $fh qq#    <td class="bar">#;
 				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'BAR'))
 				{
-					my $code = bar ($max_chars, $DATA->{'byname'}{$name}{'chars_time'});
+					my $code = bar ($max_chars, $NickData->{$nick}{'chars'});
 					print $fh $code;
 				}
 				print $fh '&nbsp;' if ($DISPLAY_CHARS eq 'BOTH');
 				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'NUMBER'))
 				{
-					print $fh $DATA->{'byname'}{$name}{'chars'};
+					print $fh $NickData->{$nick}{'chars_total'};
 				}
 				print $fh "</td>\n";
 			}
 
 			if ($DISPLAY_TIMES)
 			{
-				my $chars = $DATA->{'byname'}{$name}{'chars'};
-				my $code = bar ($chars, $DATA->{'byname'}{$name}{'chars_time'});
-				
+				my $code = bar ($NickData->{$nick}{'chars_total'}, $NickData->{$nick}{'chars'});
 				print $fh qq#    <td class="bar">$code</td>\n#;
 			}
 
 			print $fh qq#    <td class="quote">$quote</td>\n#,
 			qq#  </tr>\n#;
 			
-			if ($linescount == $LONGLINES)
+			if ($linescount == $LongLines)
 			{
 				print $fh "</table>\n\n";
 			}
@@ -698,10 +703,10 @@ EOF
 		# list them all so we start a
 		# smaller table and just list the
 		# names.. (Six names per line..)
-		elsif ($linescount <= ($LONGLINES + 6 * $SHORTLINES))
+		elsif ($linescount <= ($LongLines + 6 * $ShortLines))
 		{
-			my $row_in_this_table = int (($linescount - $LONGLINES - 1) / 6);
-			my $col_in_this_table = ($linescount - $LONGLINES - 1) % 6;
+			my $row_in_this_table = int (($linescount - $LongLines - 1) / 6);
+			my $col_in_this_table = ($linescount - $LongLines - 1) % 6;
 
 			my $total = 0;
 			if ($SORT_BY eq 'LINES')
@@ -733,7 +738,7 @@ EOF
 			
 			print $fh "    <td>$name ($total)</td>\n";
 			
-			if ($row_in_this_table == $SHORTLINES and $col_in_this_table == 5)
+			if ($row_in_this_table == $ShortLines and $col_in_this_table == 5)
 			{
 				print $fh "  </tr>\n",
 				qq#</table>\n\n#;
@@ -746,10 +751,10 @@ EOF
 		# unmentioned nicks"-line..
 	}
 
-	if (($linescount > $LONGLINES)
-			and ($linescount <= ($LONGLINES + 6 * $SHORTLINES)))
+	if (($linescount > $LongLines)
+			and ($linescount <= ($LongLines + 6 * $ShortLines)))
 	{
-		my $col = ($linescount - $LONGLINES - 1) % 6;
+		my $col = ($linescount - $LongLines - 1) % 6;
 
 		while ($col < 5)
 		{
@@ -760,7 +765,7 @@ EOF
 		print $fh "  </tr>\n";
 	}
 
-	if ($linescount != $LONGLINES)
+	if ($linescount != $LongLines)
 	{
 		print $fh "</table>\n\n";
 	}
@@ -773,6 +778,8 @@ sub bar
 	my $max_num = shift;
 
 	my $source = shift;
+
+	confess unless (ref ($source eq 'ARRAY'));
 
 	# BAR_WIDTH is a least 10
 	my $max_width = $BAR_WIDTH - 4;
@@ -794,11 +801,7 @@ sub bar
 		for ($j = 0; $j < 6; $j++)
 		{
 			my $hour = ($i * 6) + $j;
-
-			if (defined ($source->{$hour}))
-			{
-				$sum += $source->{$hour};
-			}
+			$sum += $source->[$hour];
 		}
 
 		$width += int (0.5 + ($sum * $factor));
