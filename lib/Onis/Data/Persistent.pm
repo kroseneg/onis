@@ -77,28 +77,32 @@ This is the constructor for the objects that will hold the data. Some modules
 may need a name for each field, and this is where plugins have to give the name
 of each field. This is particularly important for backends using relational
 databeses. I<$name> is merely a name for that variable or, in the database
-world - a table. The name must be unique for each calling method's namespace.
+world - a table.
 
 Since this is a constructor it returns an object. The object "knows" the folling methods:
 
-=item B<$data-E<gt>get> (I<$key>) 
+=item B<$obj-E<gt>get> (I<$key>) 
 
 Returns the data associated with the given I<$key> pair or an empty list if no
 data has been stored under this tupel before..
 
-=item B<$data-E<gt>put> (I<$key>, I<@fields>)
+=item B<$obj-E<gt>put> (I<$key>, I<@fields>)
 
 Stores the given values in the data structure. How this is done is described
 below in L<another paragraph>. Doesn't return anything. The number of entries
 in I<@fields> has to match the number of entries in I<@field_names> when
 creating the object using B<new>.
 
-=item B<$data-E<gt>keys> ([I<$field>, ...])
+=item B<$obj-E<gt>keys> ([I<$field>, ...])
 
 Returns a list of all the keys defined for this object. If one field is given
 the list will be sorted by that field's values, if more fields are given the
 list is sorted with the first field taking precedence over the others. If no
 field is supplied the order is undefined.
+
+=item B<$obj-E<gt>del> (I<$key>)
+
+Deletes I<$key> and all fields associated with it.
 
 =back
 
