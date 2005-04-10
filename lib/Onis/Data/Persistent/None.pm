@@ -117,6 +117,17 @@ sub keys
 	}, @keys);
 }
 
+sub del
+{
+	my $obj = shift;
+	my $key = shift;
+
+	if (defined ($obj->{'data'}{$key}))
+	{
+		delete ($obj->{'data'}{$key});
+	}
+}
+
 =head1 AUTHOR
 
 Florian octo Forster, L<octo@verplant.org>
