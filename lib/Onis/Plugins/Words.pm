@@ -6,7 +6,7 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin));
+use Onis::Data::Core (qw(register_plugin get_main_nick));
 use Onis::Data::Persistent ();
 use Onis::Users (qw(nick_to_name));
 
@@ -49,7 +49,6 @@ sub add
 		my ($counter) = $WordCache->get ($word);
 		$counter ||= 0;
 		$counter++;
-		
 		$WordCache->put ($word, $counter, $time, $nick);
 	}
 }
@@ -84,7 +83,7 @@ sub calculate
 		push (@data, [$word, $counter, $nick, $lastusedtime]);
 	}
 
-	@$WordData = sort { $b->[0] <=> $a->[0] } (@data);
+	@$WordData = sort { $b->[1] <=> $a->[1] } (@data);
 	splice (@$WordData, $max);
 }
 

@@ -16,7 +16,7 @@ register_plugin ('OUTPUT', \&output);
 our $MentionedNicksCache = Onis::Data::Persistent->new ('MentionedNicksCache', 'nick', qw(counter lastusedtime lastusedby));
 our $MentionedNicksData = [];
 
-my $VERSION = '$Id: Nicks.pm,v 1.7 2004/10/31 15:01:12 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
@@ -74,7 +74,7 @@ sub calculate
 		push (@data, [$nick, $counter, $lastusedby, $lastusedtime]);
 	}
 
-	@$MentionedNicksData = sort { $b->[0] <=> $a->[0] } (@data);
+	@$MentionedNicksData = sort { $b->[1] <=> $a->[1] } (@data);
 	splice (@$MentionedNicksData, $max);
 }
 
