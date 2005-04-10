@@ -39,8 +39,9 @@ Set $::DEBUG to ``0x1000'' to get extra debug messages.
 =cut
 
 our $Users = {};
-# FIXME
-our $HostmaskCache = init ('$HostmaskCache', 'hash');
+our $IdentToName = {};
+our $NameToIdent = {};
+
 
 my $VERSION = '$Id: Users.pm,v 1.2 2004/08/01 13:45:27 octo Exp $';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
@@ -193,9 +194,9 @@ sub ident_to_name
 	my $ident = shift;
 	my $name = '';
 
-	if (defined ($HostmaskCache->{$ident}))
+	if (defined ($IdentToName->{$ident}))
 	{
-		$name = $HostmaskCache->{$ident};
+		$name = $IdentToName->{$ident};
 	}
 	else
 	{
@@ -220,7 +221,8 @@ sub ident_to_name
 		}
 	}
 	
-	$HostmaskCache->{$ident} = $name;
+	$IdentToName->{$ident} = $name;
+	$NameToIdent->{$name} = $ident if ($name);
 	return ($name);
 }
 
@@ -254,6 +256,27 @@ sub nick_to_name
 	if ($ident)
 	{
 		return (ident_to_name ($ident));
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item B<name_to_ident> (I<$name>)
+
+Does the reverse of B<ident_to_name>: Returns the most recent association of
+I<$name> to an ident. This function should rarely be needed..
+
+=cut
+
+sub name_to_ident
+{
+	my $name = shift;
+
+	if (defined ($NameToIdent->{$name}))
+	{
+		return ($NameToIdent->{$name});
 	}
 	else
 	{

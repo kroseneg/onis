@@ -15,9 +15,10 @@ use strict;
 use warnings;
 
 use Exporter;
-use Onis::Config qw#get_config#;
-use Onis::Users qw#host_to_username nick_to_username#;
+use Onis::Config qw(get_config);
+use Onis::Users qw(ident_to_name);
 use Onis::Data::Persistent;
+use Onis::Parser::Persistent qw(get_absolute_time);
 
 =head1 NAMING CONVENTION
 
@@ -37,15 +38,12 @@ our $Nick2Ident   = Onis::Data::Persistent->new ('Nick2Ident', 'nick', 'ident');
 our $ChatterList  = Onis::Data::Persistent->new ('ChatterList', 'chatter', 'counter');
 our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'counter');
 
-
-
 @Onis::Data::Core::EXPORT_OK =
 qw(
 	store unsharp calculate_nicks 
 
 	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick
-	ident_to_print_name get_print_name get_total_lines nick_rename
-	print_output register_plugin merge_idents
+	get_total_lines nick_rename print_output register_plugin merge_idents
 );
 @Onis::Data::Core::ISA = ('Exporter');
 
@@ -202,6 +200,11 @@ sub store
 		$ChannelNames->put ($chan, $count);
 	}
 
+	if (!defined ($data->{'epoch'}))
+	{
+		$data->{'epoch'} = get_absolute_time ();
+	}
+
 	if ($::DEBUG & 0x400)
 	{
 		my @keys = keys (%$data);
@@ -214,6 +217,7 @@ sub store
 		}
 	}
 
+	# FIXME
 	#$DATA->{'total_lines'}++;
 
 	if (defined ($PluginCallbacks->{$type}))
@@ -342,7 +346,7 @@ sub calculate_nicks
 	{
 		my $chatter = shift;
 		my ($nick, $ident) = split (m/!/, $chatter);
-		my $name = host_to_username ($chatter);
+		my $name = ident_to_name ($ident);
 		my ($counter) = $ChatterList->get ($chatter);
 
 		$nicks->{$nick}{$temp} = 0 unless (defined ($nicks->{$nick}{$temp}));
@@ -524,21 +528,25 @@ Returns the name of the channel we're generating stats for.
 
 sub get_channel
 {
-	my $chan;
+	my $chan = '#unknown'
+	;
 	if (get_config ('channel'))
 	{
 		$chan = get_config ('channel');
 	}
-	elsif (keys (%{$DATA->{'channel'}}))
-	{
-		($chan) = sort
-		{
-			$DATA->{'channel'}{$b} <=> $DATA->{'channel'}{$a}
-		} (keys (%{$DATA->{'channel'}}));
-	}
 	else
 	{
-		$chan = '#unknown';
+		my $max = 0;
+		for ($ChannelNames->keys ())
+		{
+			my $c = $_;
+			my ($num) = $ChannelNames->get ($c);
+			if (defined ($num) and ($num > $max))
+			{
+				$max = $num;
+				$chan = $c;
+			}
+		}
 	}
 
 	# Fix network-safe channel named (RFC 2811)
@@ -618,55 +626,6 @@ sub ident_to_nick
 	}
 }
 
-=item I<$name> = B<ident_to_print_name> (I<$ident>)
-
-Returns the printable version of the name for the chatter identified by
-I<$ident>. Returns an empty string if the ident is not known.
-
-=cut
-
-sub ident_to_print_name
-{
-	my $ident = shift;
-	my $nick = ident_to_nick ($ident);
-	my $name;
-	
-	if (!$nick)
-	{
-		return ('');
-	}
-
-	$name = get_print_name ($nick);
-
-	return ($name);
-}
-
-=item I<$name> = B<get_print_name> (I<$nick>)
-
-Returns the printable version of the name for the nick I<$nick> or I<$nick> if
-unknown.
-
-=cut
-
-sub get_print_name
-{
-	my $nick = shift;
-	my $ident = '';
-	my $name = $nick;
-
-	if (defined ($NickToIdent{$nick}))
-	{
-		$ident = $NickToIdent{$nick};
-	}
-
-	if (($ident !~ m/^[^@]+@.+$/) and $ident)
-	{
-		$name = $ident;
-	}
-
-	return ($name);
-}
-
 =item I<$lines> = B<get_total_lines> ()
 
 Returns the total number of lines parsed so far.
@@ -688,24 +647,13 @@ sub nick_rename
 {
 	my $old_nick = shift;
 	my $new_nick = shift;
+	my $ident;
 
-	if (defined ($DATA->{'host_cache'}{$old_nick}))
+	($ident) = $Nick2Ident->get ($old_nick);
+
+	if (defined ($ident) and ($ident))
 	{
-		my $host = $DATA->{'host_cache'}{$old_nick};
-		$DATA->{'host_cache'}{$new_nick} = $host;
-
-		if (!defined ($DATA->{'hosts_of_nick'}{$new_nick}{$host}))
-		{
-			$DATA->{'hosts_of_nick'}{$new_nick}{$host} = 1;
-		}
-	}
-
-	if (defined ($DATA->{'byident'}{"$old_nick\@unidentified"}))
-	{
-		# Other data may be overwritten, but I don't care here..
-		# This should be a extremely rare case..
-		$DATA->{'byident'}{"$new_nick\@unidentified"} = $DATA->{'byident'}{"$old_nick\@unidentified"};
-		delete ($DATA->{'byident'}{"$old_nick\@unidentified"});
+		$Nick2Ident->put ($new_nick, $ident);
 	}
 }
 
@@ -777,8 +725,6 @@ sub register_plugin
 	push (@{$PluginCallbacks->{$type}}, $sub_ref);
 
 	print STDERR $/, __FILE__, ': ', scalar (caller ()), " registered for ``$type''." if ($::DEBUG & 0x800);
-
-	return ($DATA);
 }
 
 =item B<merge_idents> ()

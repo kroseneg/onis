@@ -3,20 +3,50 @@ package Onis::Plugins::Core;
 use strict;
 use warnings;
 
+=head1 NAME
+
+Onis::Plugins::Core
+
+=head1 DESCRIPTION
+
+Plugin for the main table and the hourly-statistics. This is the most
+complicated plugin so far.
+
+=cut
+
 use Onis::Config qw/get_config/;
 use Onis::Html qw/html_escape get_filehandle/;
 use Onis::Language qw/translate/;
 use Onis::Users qw/get_name get_link get_image nick_to_username/;
-use Onis::Data::Core qw#all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
-use Onis::Data::Persistent qw#init#;
+use Onis::Data::Core qw#get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
+use Onis::Data::Persistent;
 
-our $DATA;
-our $QUOTE_CACHE = init ('$QUOTE_CACHE', 'hash');
+our $NickLinesCounter = Onis::Data::Persistent->new ('NickLinesCounter', 'nick',
+	qw(
+		lines00 lines01 lines02 lines03 lines04 lines05 lines06 lines07 lines08 lines09 lines10 lines11
+		lines12 lines13 lines14 lines15 lines16 lines17 lines18 lines19 lines20 lines21 lines22 lines23
+	)
+);
+our $NickWordsCounter = Onis::Data::Persistent->new ('NickWordsCounter', 'nick',
+	qw(
+		words00 words01 words02 words03 words04 words05 words06 words07 words08 words09 words10 words11
+		words12 words13 words14 words15 words16 words17 words18 words19 words20 words21 words22 words23
+	)
+);
+our $NickCharsCounter = Onis::Data::Persistent->new ('NickCharsCounter', 'nick',
+	qw(
+		chars00 chars01 chars02 chars03 chars04 chars05 chars06 chars07 chars08 chars09 chars10 chars11
+		chars12 chars13 chars14 chars15 chars16 chars17 chars18 chars19 chars20 chars21 chars22 chars23
+	)
+);
+
+our $QuoteCache = {}; # Saves per-nick information without any modification
+our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
 
 our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
-our $QUOTE_CACHE_SIZE = 10;
-our $QUOTE_MIN = 30;
-our $QUOTE_MAX = 80;
+our $QuoteCache_SIZE = 10;
+our $QuoteMin = 30;
+our $QuoteMax = 80;
 our $WORD_LENGTH = 5;
 our $SORT_BY = 'LINES';
 our $DISPLAY_LINES = 'BOTH';
@@ -34,19 +64,19 @@ if (get_config ('quote_cache_size'))
 {
 	my $tmp = get_config ('quote_cache_size');
 	$tmp =~ s/\D//g;
-	$QUOTE_CACHE_SIZE = $tmp if ($tmp);
+	$QuoteCache_SIZE = $tmp if ($tmp);
 }
 if (get_config ('quote_min'))
 {
 	my $tmp = get_config ('quote_min');
 	$tmp =~ s/\D//g;
-	$QUOTE_MIN = $tmp if ($tmp);
+	$QuoteMin = $tmp if ($tmp);
 }
 if (get_config ('quote_max'))
 {
 	my $tmp = get_config ('quote_max');
 	$tmp =~ s/\D//g;
-	$QUOTE_MAX = $tmp if ($tmp);
+	$QuoteMax = $tmp if ($tmp);
 }
 if (get_config ('min_word_length'))
 {
@@ -206,16 +236,11 @@ if (get_config ('shortlines'))
 	}
 }
 
-$DATA = register_plugin ('TEXT', \&add);
-$DATA = register_plugin ('ACTION', \&add);
-$DATA = register_plugin ('OUTPUT', \&output);
+register_plugin ('TEXT', \&add);
+register_plugin ('ACTION', \&add);
+register_plugin ('OUTPUT', \&output);
 
-if (!defined ($DATA->{'byhour'}))
-{
-	$DATA->{'byhour'} = [];
-}
-
-my $VERSION = '$Id: Core.pm,v 1.12 2004/04/30 06:56:13 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
@@ -230,52 +255,125 @@ sub add
 	my $host = $data->{'host'};
 	my $text = $data->{'text'};
 	my $type = $data->{'type'};
+	my $time = $data->{'epoch'};
 
 	my $words = scalar (@{$data->{'words'}});
 	my $chars = length ($text);
+
 	if ($type eq 'ACTION')
 	{
 		$chars -= (length ($nick) + 3);
 	}
 
-	$DATA->{'byident'}{$ident}{'lines'}++;
-	$DATA->{'byident'}{$ident}{'words'} += $words;
-	$DATA->{'byident'}{$ident}{'chars'} += $chars;
-	$DATA->{'byident'}{$ident}{'lines_time'}{$hour}++;
-	$DATA->{'byident'}{$ident}{'words_time'}{$hour} += $words;
-	$DATA->{'byident'}{$ident}{'chars_time'}{$hour} += $chars;
-	
-	$DATA->{'byhour'}[$hour] += $chars;
-	
-	if ((length ($text) >= $QUOTE_MIN)
-				and (length ($text) <= $QUOTE_MAX))
+	my @counter = $NickLinesCounter->get ($nick);
+	if (!@counter)
 	{
-		if (!defined ($QUOTE_CACHE->{$nick}))
+		@counter = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
+	}
+	$counter[$hour]++
+	$NickLinesCounter->put ($nick, @counter);
+
+	@counter = $NickWordsCounter->get ($nick);
+	if (!@counter)
+	{
+		@counter = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
+	}
+	$counter[$hour] += $words;
+	$NickWordsCounter->put ($nick, @counter);
+
+	@counter = $NickCharsCounter->get ($nick);
+	if (!@counter)
+	{
+		@counter = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
+	}
+	$counter[$hour] += $chars;
+	$NickCharsCounter->put ($nick, @counter);
+
+	if ((length ($text) >= $QuoteMin)
+				and (length ($text) <= $QuoteMax))
+	{
+		if (!defined ($QuoteCache->{$nick}))
 		{
-			$QUOTE_CACHE->{$nick} = [];
+			$QuoteCache->{$nick} = [];
 		}
-		push (@{$QUOTE_CACHE->{$nick}}, $text);
+		push (@{$QuoteCache->{$nick}}, [$time, $text]);
 	}
 
-	if (defined ($QUOTE_CACHE->{$nick}))
+	if (defined ($QuoteCache->{$nick}))
 	{
-		while (scalar (@{$QUOTE_CACHE->{$nick}}) > $QUOTE_CACHE_SIZE)
+		while (scalar (@{$QuoteCache->{$nick}}) > $QuoteCache_SIZE)
 		{
-			shift (@{$QUOTE_CACHE->{$nick}});
+			shift (@{$QuoteCache->{$nick}});
 		}
 	}
 
 	return (1);
 }
 
+sub calculate
+{
+	for (get_all_nicks ())
+	{
+		my $nick = $_;
+		my $main = get_main_nick ($nick);
+
+		if (!defined ($NickData->{$main}))
+		{
+			$NickData->{$main} =
+			{
+				lines => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+				words => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+				chars => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)]
+			};
+		}
+
+		my @counter = $NickLinesCounter->get ($nick);
+		if (@counter)
+		{
+			for (my $i = 0; $i < 24; $i++)
+			{
+				$NickData->{$main}{'lines'}[$i] += $counter[$i];
+			}
+		}
+
+		@counter = $NickWordsCounter->get ($nick);
+		if (@counter)
+		{
+			for (my $i = 0; $i < 24; $i++)
+			{
+				$NickData->{$main}{'words'}[$i] += $counter[$i];
+			}
+		}
+
+		@counter = $NickWordsCounter->get ($nick);
+		if (@counter)
+		{
+			for (my $i = 0; $i < 24; $i++)
+			{
+				$NickData->{$main}{'words'}[$i] += $counter[$i];
+			}
+		}
+
+		if (!defined ($QuoteData->{$main}))
+		{
+			$QuoteData->{$main} = [];
+		}
+		if (defined ($QuoteCache->{$nick}))
+		{
+			my @new = sort (sub { $b->[0] <=> $a->[0] }, @{$QuoteCache->{$nick}}, @{$QuoteData->{$main}});
+			splice (@new, $QuoteCache_SIZE) if (scalar (@new) > $QuoteCache_SIZE);
+			$QuoteData->{$main} = \@new;
+		}
+	}
+}
+
 sub output
 {
+	calculate ();
 	activetimes ();
 	ranking ();
 }
 	
-# this subroutines doesn't take any arguments either (stupid me). It prints the
-# daily usage to the file.
 sub activetimes
 {
 	my $max = 0;		# the most lines that were written in one hour..
@@ -469,11 +567,11 @@ EOF
 		{
 			my $quote = translate ('-- no quote available --');
 
-			if (defined ($QUOTE_CACHE->{$nick}))
+			if (defined ($QuoteCache->{$nick}))
 			{
-				my $num = scalar (@{$QUOTE_CACHE->{$nick}});
+				my $num = scalar (@{$QuoteCache->{$nick}});
 				my $rand = int (rand ($num));
-				$quote = html_escape ($QUOTE_CACHE->{$nick}[$rand]);
+				$quote = html_escape ($QuoteCache->{$nick}[$rand]);
 			}
 
 			my $link = '';
@@ -714,47 +812,8 @@ sub bar
 	return ($retval);
 }
 
-sub merge_hashes
-{
-	my $target = shift;
-	my $source = shift;
+=head1 AUTHOR
 
-	my @keys = keys (%$source);
+Florian octo Forster, E<lt>octo at verplant.orgE<gt>
 
-	for (@keys)
-	{
-		my $key = $_;
-		my $val = $source->{$key};
-
-		if (!defined ($target->{$key}))
-		{
-			$target->{$key} = $val;
-		}
-		elsif (!ref ($val))
-		{
-			if ($val =~ m/\D/)
-			{
-				# FIXME
-				print STDERR $/, __FILE__, ": ``$key'' = ``$val''" if ($::DEBUG);
-			}
-			else
-			{
-				$target->{$key} += $val;
-			}
-		}
-		elsif (ref ($val) eq "HASH")
-		{
-			merge_hashes ($target->{$key}, $val);
-		}
-		elsif (ref ($val) eq "ARRAY")
-		{
-			print STDERR $/, __FILE__, ": There is an array ``$key''";
-			push (@{$target->{$key}}, @$val);
-		}
-		else
-		{
-			my $type = ref ($val);
-			print STDERR $/, __FILE__, ": Reference type ``$type'' is not supported!", $/;
-		}
-	}
-}
+=cut
