@@ -9,9 +9,10 @@ use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(get_main_nick register_plugin));
 use Onis::Users (qw(ident_to_name get_link get_image));
 
-use Onis::Plugin::Core (qw(get_core_nick_counters));
-use Onis::Plugin::Conversations (qw(get_conversations));
-use Onis::Plugin::Bignumbers (qw(get_bignumbers));
+use Onis::Plugins::Core (qw(get_core_nick_counters));
+use Onis::Plugins::Conversations (qw(get_conversations));
+use Onis::Plugins::Bignumbers (qw(get_bignumbers));
+use Onis::Plugins::Interestingnumbers (qw(get_interestingnumbers));
 
 our $DISPLAY_IMAGES = 0;
 our $DEFAULT_IMAGE = '';
@@ -155,10 +156,11 @@ sub output
 		$nick_data->{$nick} = get_core_nick_counters ($nick);
 		$nick_data->{$nick}{'conversations'} = get_conversations ($nick);
 		$nick_data->{$nick}{'bignumbers'} = get_bignumbers ($nick);
+		$nick_data->{$nick}{'interestingnumbers'} = get_interestingnumbers ($nick);
 		
 		for (my $i = 0; $i < 12; $i++)
 		{
-			$num = $nick_data->{$nick}{'lines'}[$i] + $nick_data->{$nick}{'lines'}[$i + 1];
+			$num = $nick_data->{$nick}{'lines'}[2 * $i] + $nick_data->{$nick}{'lines'}[(2 * $i) + 1];
 			$max_time = $num if ($max_time < $num);
 		}
 
@@ -261,61 +263,40 @@ sub output
 
 		print $fh qq#    </td>\n    <td class="numbers">\n#;
 
-		# FIXME
-
-		if (defined ($DATA->{'byname'}{$name}{'op_given'}))
+		if (%{$ptr->{'interestingnumbers'}})
 		{
-			$num = $DATA->{'byname'}{$name}{'op_given'};
 			$trans = translate ('Has given %u ops');
-
-			printf $fh ("      $trans<br />\n", $num);
-		}
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'ops_given'});
 		
-		if (defined ($DATA->{'byname'}{$name}{'op_taken'}))
-		{
-			$num = $DATA->{'byname'}{$name}{'op_taken'};
 			$trans = translate ('Has taken %u ops');
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'ops_taken'});
 
-			printf $fh ("      $trans<br />\n", $num);
-		}
-		
-		if (defined ($DATA->{'byname'}{$name}{'kick_given'}))
-		{
-			$num = $DATA->{'byname'}{$name}{'kick_given'};
 			$trans = translate ('Has kicked out %u people');
-
-			printf $fh ("      $trans<br />\n", $num);
-		}
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kicks_given'});
 		
-		if (defined ($DATA->{'byname'}{$name}{'kick_received'}))
-		{
-			$num = $DATA->{'byname'}{$name}{'kick_received'};
 			$trans = translate ('Has been kicked out %u times');
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kicks_received'});
 
-			printf $fh ("      $trans<br />\n", $num);
-		}
-		
-		if (defined ($DATA->{'byname'}{$name}{'questions'}))
-		{
-			$num = 100 * $DATA->{'byname'}{$name}{'questions'} / $DATA->{'byname'}{$name}{'lines'};
-			$trans = translate ("Question ratio: %.1f%%");
-
-			printf $fh ("      $trans<br />\n", $num);
-		}
-
-		if (defined ($DATA->{'byname'}{$name}{'topics'}))
-		{
-			$num = $DATA->{'byname'}{$name}{'topics'};
-			$trans = translate ('Has set %u topics');
-
-			printf $fh ("      $trans<br />\n", $num);
-		}
-
-		if (defined ($DATA->{'byname'}{$name}{'actions'}))
-		{
-			$num = $DATA->{'byname'}{$name}{'actions'};
 			$trans = translate ('Has performed %u actions');
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'actions'});
+		}
 
+		if (%{$ptr->{'bignumbers'}})
+		{
+			$num = 100 * $ptr->{'bignumbers'}{'questions'} / $ptr->{'lines_total'};
+			$trans = translate ("Question ratio: %.1f%%");
+			printf $fh ("      $trans<br />\n", $num);
+
+			$num = 100 * $ptr->{'bignumbers'}{'uppercase'} / $ptr->{'lines_total'};
+			$trans = translate ("Uppercase ratio: %.1f%%");
+			printf $fh ("      $trans<br />\n", $num);
+
+			$num = 100 * $ptr->{'bignumbers'}{'smiley_happy'} / $ptr->{'lines_total'};
+			$trans = translate ("Happy smiley ratio: %.1f%%");
+			printf $fh ("      $trans<br />\n", $num);
+
+			$num = 100 * $ptr->{'bignumbers'}{'smiley_sad'} / $ptr->{'lines_total'};
+			$trans = translate ("Sad smiley ratio: %.1f%%");
 			printf $fh ("      $trans<br />\n", $num);
 		}
 
@@ -328,32 +309,22 @@ sub output
 
 		print $fh qq#    </td>\n  </tr>\n  <tr>\n    <td class="houractivity">\n#;
 		
-		if (defined ($DATA->{'byname'}{$name}{'chars_time'}))
+		if (defined ($ptr->{'chars'}))
 		{
 			print $fh qq#      <table class="hours_of_day">\n        <tr>\n#;
 			
-			for (0..11)
+			for (my $i = 0; $i < 12; $i++)
 			{
-				my $hour = 2 * $_;
-				my $num = 0;
+				my $hour = 2 * $i;
+				$num = 0;
 
 				my $img = $V_IMAGES[int ($hour / 6)];
 				my $height;
 
-				if (defined ($DATA->{'byname'}{$name}{'chars_time'}{$hour}))
-				{
-					$num = $DATA->{'byname'}{$name}{'chars_time'}{$hour};
-				}
-				if (defined ($DATA->{'byname'}{$name}{'chars_time'}{1 + $hour}))
-				{
-					$num = $DATA->{'byname'}{$name}{'chars_time'}{1 + $hour};
-				}
+				$num  = $ptr->{'chars'}[$hour];
+				$num += $ptr->{'chars'}[$hour + 1];
 
-				$height = int (0.5 + ($time_factor * $num));
-				if (!$height)
-				{
-					$height = 1;
-				}
+				$height = int (0.5 + ($time_factor * $num)) || 1;
 
 				print $fh qq#          <td><img src="$img" alt="$num chars" #,
 				qq#style="height: ${height}px;" /></td>\n#;
@@ -372,22 +343,27 @@ EOF
 		}
 		else
 		{
-			print $fh '&nbsp;';
+			print '&nbsp;';
 		}
 
 		print $fh qq#    </td>\n    <td class="convpartners">\n#;
 		
-		if (defined ($DATA->{'byname'}{$name}{'conversations'}))
+		if (%{$ptr->{'conversations'}})
 		{
 			my $i;
-			my $data = $DATA->{'byname'}{$name}{'conversations'};
-			my @names = sort
+			my @others = sort
 			{
-				($data->{$b}[0] + $data->{$b}[1] + $data->{$b}[2] + $data->{$b}[3])
+				($ptr->{'conversations'}{$b}{'nicks'}{$nick}[0]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[1]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[2]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[3])
 				<=>
-				($data->{$a}[0] + $data->{$a}[1] + $data->{$a}[2] + $data->{$a}[3])
+				($ptr->{'conversations'}{$a}{'nicks'}{$nick}[0]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[1]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[2]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[3])
 			}
-			keys (%$data);
+			(keys %{$ptr->{'conversations'}});
 
 			$trans = translate ('Talks to');
 
@@ -398,26 +374,20 @@ EOF
 	</tr>
 EOF
 
-			$i = 0;
-			for (@names)
+			for (my $i = 0; $i < $PLUGIN_MAX and $i < scalar (@others); $i++)
 			{
-				my $this_name = $_;
+				my $other = $others[$i];
+				my $other_name = nick_to_name ($other) || $other;
 				my $total = 0;
 
 				print $fh "        <tr>\n",
-				qq#          <td class="nick">$this_name</td>\n#,
+				qq#          <td class="nick">$other_name</td>\n#,
 				qq#          <td class="bar">#;
 
-				for (0..3)
+				for (my $k = 0; $k < 4; $k++)
 				{
-					my $k = $_;
-					
 					my $img = $H_IMAGES[$k];
-					my $width = int (0.5 + ($conv_factor * $data->{$this_name}[$_]));
-					if (!$width)
-					{
-						$width = 1;
-					}
+					my $width = int (0.5 + ($conv_factor * $ptr->{'conversations'}{$other}{'nicks'}{$nick}[$k])) || 1;
 					
 					print $fh qq#<img src="$img" alt="" #;
 					if ($k == 0)
@@ -432,13 +402,6 @@ EOF
 				}
 				
 				print $fh "</td>\n        </tr>\n";
-
-				$i++;
-
-				if ($i >= $PLUGIN_MAX)
-				{
-					last;
-				}
 			}
 
 			print $fh "      </table>\n";
@@ -446,12 +409,6 @@ EOF
 		else
 		{
 			print $fh '&nbsp;';
-		}
-
-		$max--;
-		if ($max <= 0)
-		{
-			last;
 		}
 	}
 

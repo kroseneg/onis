@@ -3,12 +3,17 @@ package Onis::Plugins::Interestingnumbers;
 use strict;
 use warnings;
 
+use Exporter;
+
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(register_plugin));
 use Onis::Data::Persistent;
 use Onis::Users (qw(nick_to_name));
+
+@Onis::Plugins::Interestingnumbers::EXPORT_OK = (qw(get_interestingnumbers));
+@Onis::Plugins::Interestingnumbers::ISA = ('Exporter');
 
 register_plugin ('ACTION', \&add_action);
 register_plugin ('JOIN', \&add_join);
@@ -17,7 +22,8 @@ register_plugin ('MODE', \&add_mode);
 register_plugin ('TEXT', \&add_text);
 register_plugin ('OUTPUT', \&output);
 
-our $InterestingNumbersCache = Onis::Data::Persistent->new ('InterestingNumbersCache', 'nick', qw(actions joins kicks_given kicks_received ops_given ops_taken soliloquies));
+our $InterestingNumbersCache = Onis::Data::Persistent->new ('InterestingNumbersCache', 'nick',
+	qw(actions joins kicks_given kicks_received ops_given ops_taken soliloquies));
 our $InterestingNumbersData = {};
 
 our $SoliloquiesNick = '';
@@ -397,4 +403,16 @@ sub sort_by_field
 	}
 	
 	return (@retval);
+}
+
+sub get_interestingnumbers
+{
+	my $nick = shift;
+
+	if (defined ($InterestingNumbersData->{$nick}))
+	{
+		return ({});
+	}
+
+	return ($InterestingNumbersData->{$nick});
 }
