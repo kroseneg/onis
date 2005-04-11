@@ -47,7 +47,7 @@ sub get_or_empty
 {
 	my $nick = shift;
 	my @data = $InterestingNumbersCache->get ($nick);
-	@data = (0, 0, 0, 0, 0, 0) unless (@data);
+	@data = (0, 0, 0, 0, 0, 0, 0) unless (@data);
 	return (@data);
 }
 

@@ -3,9 +3,7 @@ package Onis::Data::Persistent::None;
 use strict;
 use warnings;
 
-use vars (qw($TREE));
-
-use Carp qw(confess);
+use Carp qw(carp confess);
 
 =head1 NAME
 
@@ -21,7 +19,12 @@ None.
 
 =cut
 
-$TREE = {};
+our $Tree = {};
+
+if ($::DEBUG & 0x0200)
+{
+	require Data::Dumper;
+}
 
 return (1);
 
@@ -37,20 +40,28 @@ sub new
 	
 	my $id = $caller . ':' . $name;
 	
-	if (exists ($TREE->{$id}))
+	if (exists ($Tree->{$id}))
 	{
 		print STDERR $/, __FILE__, ": Name $name has been used in context $caller before.";
 		return (undef);
 	}
 
-	$TREE->{$id} = {};
-	$obj->{'data'} = $TREE->{$id};
+	$Tree->{$id} = {};
+	$obj->{'data'} = $Tree->{$id};
 
 	$obj->{'key'} = $key;
 	$obj->{'fields'} = [@fields];
 	$obj->{'num_fields'} = scalar (@fields);
 	$obj->{'field_index'} = {map { $_ => $i++ } (@fields)};
 	$obj->{'id'} = $id;
+
+	if ($::DEBUG & 0x0200)
+	{
+		my $prefix = __FILE__ . ': ';
+		my $dbg = Data::Dumper->Dump ([$obj], ['obj']);
+		$dbg =~ s/^/$prefix/mg; chomp ($dbg);
+		print STDOUT $/, $dbg;
+	}
 	
 	return (bless ($obj, $pkg));
 }
@@ -64,8 +75,13 @@ sub put
 	if ($obj->{'num_fields'} != scalar (@fields))
 	{
 		my $id = $obj->{'id'};
-		print STDERR $/, __FILE__, ": Number of fields do not match ($id).";
+		carp ("Number of fields do not match ($id).");
 		return;
+	}
+
+	if ($::DEBUG & 0x0200)
+	{
+		print STDOUT $/, __FILE__, ': PUT(', $obj->{'id'}, ', ', $key, ') = (' . join (', ', @fields) . ')';
 	}
 
 	$obj->{'data'}{$key} = [@fields];
@@ -79,6 +95,11 @@ sub get
 	if (!defined ($obj->{'data'}{$key}))
 	{
 		return (qw());
+	}
+
+	if ($::DEBUG & 0x0200)
+	{
+		print STDOUT $/, __FILE__, ': GET(', $obj->{'id'}, ', ', $key, ') = (' . join (', ', @{$obj->{'fields'}}) . ')';
 	}
 
 	return (@{$obj->{'data'}{$key}});

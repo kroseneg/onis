@@ -27,7 +27,7 @@ BEGIN
 	# 0x0400   Data::Core (dump incoming data to stderr)
 	# 0x0800   Data::Core (initializing)
 	# 0x1000   Onis::Users
-	$::DEBUG = 0x0000;
+	$::DEBUG = 0x0200;
 }
 
 use strict;
@@ -48,7 +48,7 @@ if (!$VERSION)
 	$VERSION =~ s/^\D*(\d+).*/r$1/;
 }
 
-our $FILEINFO;
+our $FileInfo;
 our $PURGE_LOGS = 0;
 
 print STDERR $/, __FILE__, ': $Id$' if ($::DEBUG);
@@ -126,11 +126,11 @@ if (get_config ('logtype'))
 require "Onis/Parser/$logtype.pm";
 require Onis::Parser::Persistent;
 require Onis::Data::Persistent;
-import Onis::Parser qw/parse last_date/;
-import Onis::Parser::Persistent qw#newfile#;
-import Onis::Data::Persistent qw#init#;
+import Onis::Parser (qw(parse last_date));
+import Onis::Parser::Persistent (qw(newfile));
+import Onis::Data::Persistent ();
 
-$FILEINFO = init ('$FILEINFO', 'hash');
+$FileInfo = Onis::Data::Persistent->new ('FileInfo', 'inode', qw(mtime));
 
 if (get_config ('purge_logs'))
 {
@@ -167,15 +167,18 @@ for (get_config ('input'))
 	}
 	else
 	{
+		my ($old_mtime) = $FileInfo->get ($inode);
+
 		print STDERR $/, __FILE__, ": ``$file'': " if ($::DEBUG & 0x200);
-		if (defined ($FILEINFO->{$inode}{'mtime'}))
+
+		if (defined ($old_mtime))
 		{
-			if ($FILEINFO->{$inode}{'mtime'} == $mtime)
+			if ($old_mtime == $mtime)
 			{
 				print STDERR "File did not change. Skipping." if ($::DEBUG & 0x200);
 				next;
 			}
-			elsif ($FILEINFO->{$inode}{'mtime'} < $mtime)
+			elsif ($old_mtime < $mtime)
 			{
 				print STDERR "File changed. Reading it again." if ($::DEBUG & 0x200);
 			}
@@ -188,7 +191,7 @@ for (get_config ('input'))
 		{
 			print STDERR "File appears to be new. Reading it." if ($::DEBUG & 0x200);
 		}
-		$FILEINFO->{$inode}{'mtime'} = $mtime;
+		$FileInfo->put ($inode, $mtime);
 	}
 	
 	# truncate
@@ -228,7 +231,7 @@ for (get_config ('input'))
 		}
 	}
 	
-	newfile ($FILEINFO->{$inode});
+	newfile ($FileInfo->{$inode});
 	while (<$logfile>)
 	{
 		s/\n|\r//g;
@@ -279,7 +282,7 @@ for (get_config ('input'))
 				{
 					print STDERR $/, __FILE__, ": Unable to delete empty file ``$file'': $!";
 				}
-				delete ($FILEINFO->{$inode});
+				delete ($FileInfo->{$inode});
 			}
 			else
 			{

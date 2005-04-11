@@ -5,7 +5,7 @@ use warnings;
 
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin));
+use Onis::Data::Core (qw(register_plugin nick_to_ident));
 use Onis::Data::Persistent ();
 use Onis::Users (qw(nick_to_name));
 
