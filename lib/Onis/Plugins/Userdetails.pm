@@ -11,6 +11,7 @@ use Onis::Users (qw(ident_to_name get_link get_image));
 
 use Onis::Plugin::Core (qw(get_core_nick_counters));
 use Onis::Plugin::Conversations (qw(get_conversations));
+use Onis::Plugin::Bignumbers (qw(get_bignumbers));
 
 our $DISPLAY_IMAGES = 0;
 our $DEFAULT_IMAGE = '';
@@ -153,36 +154,20 @@ sub output
 
 		$nick_data->{$nick} = get_core_nick_counters ($nick);
 		$nick_data->{$nick}{'conversations'} = get_conversations ($nick);
+		$nick_data->{$nick}{'bignumbers'} = get_bignumbers ($nick);
 		
-		if (defined ($DATA->{'byname'}{$name}{'chars_time'}))
+		for (my $i = 0; $i < 12; $i++)
 		{
-			for (0..23)
-			{
-				next unless (defined ($DATA->{'byname'}{$name}{'chars_time'}{$_}));
-				if ($DATA->{'byname'}{$name}{'chars_time'}{$_} > $max_time)
-				{
-					$max_time = $DATA->{'byname'}{$name}{'chars_time'}{$_};
-				}
-			}
+			$num = $nick_data->{$nick}{'lines'}[$i] + $nick_data->{$nick}{'lines'}[$i + 1];
+			$max_time = $num if ($max_time < $num);
 		}
-		if (defined ($DATA->{'byname'}{$name}{'conversations'}))
+
+		for (keys %{$nick_data->{$nick}{'conversations'}})
 		{
-			my @others = keys (%{$DATA->{'byname'}{$name}{'conversations'}});
-			for (@others)
-			{
-				my $o = $_;
-				my $num = 0;
-
-				for (0..3)
-				{
-					$num += $DATA->{'byname'}{$name}{'conversations'}{$o}[$_];
-				}
-
-				if ($num > $max_conv)
-				{
-					$max_conv = $num;
-				}
-			}
+			my $other = $_;
+			my $ptr = $nick_data->{$nick}{'conversations'}{'nicks'}{$other};
+			$num = $ptr->[0] + $ptr->[1] + $ptr->[2] + $ptr->[3];
+			$max_conv = $num if ($max_conv < $num);
 		}
 	}
 
@@ -204,12 +189,15 @@ sub output
 	qq#    <th colspan="#, $DISPLAY_IMAGES ? 3 : 2, qq#">$trans</th>\n#,
 	qq#  </tr>\n#;
 
-	for (@names)
+	for (@nicks)
 	{
-		my $name = $_;
+		my $nick = $_;
+		my $name = nick_to_name ($nick);
+		my $print = $name ? $name : $nick;
+		my $ptr = $nick_data->{$nick};
 
 		print $fh qq#  <tr>\n#,
-		qq#    <th colspan="#, $DISPLAY_IMAGES ? 3 : 2, qq#" class="nick">$name</th>\n#,
+		qq#    <th colspan="#, $DISPLAY_IMAGES ? 3 : 2, qq#" class="nick">$print</th>\n#,
 		qq#  </tr>\n#,
 		qq#  <tr>\n#;
 
@@ -230,7 +218,7 @@ sub output
 				{
 					print $fh qq#<a href="$link">#;
 				}
-				print $fh qq#<img src="$image" alt="$name" />#;
+				print $fh qq#<img src="$image" alt="$print" />#;
 				if ($link)
 				{
 					print $fh "</a>";
@@ -245,30 +233,35 @@ sub output
 
 		print $fh qq#    <td class="counters">\n#;
 
-		$num = $DATA->{'byname'}{$name}{'lines'};
-		$trans = translate ('Has written %u lines');
-		printf $fh ("      $trans<br />\n", $num);
-
-		$num = $DATA->{'byname'}{$name}{'words'};
-		$trans = translate ('Has written %u words');
-		printf $fh ("      $trans<br />\n", $num);
-
-		$num = $DATA->{'byname'}{$name}{'chars'};
-		$trans = translate ('Has written %u chars');
-		printf $fh ("      $trans<br />\n", $num);
-
-		if ($DATA->{'byname'}{$name}{'lines'})
 		{
-			$num = $DATA->{'byname'}{$name}{'words'} / $DATA->{'byname'}{$name}{'lines'};
+			my $lines;
+			my $words;
+			my $chars;
+
+			$lines = $ptr->{'lines_total'};
+			$trans = translate ('Has written %u lines');
+			printf $fh ("      $trans<br />\n", $lines);
+
+			$words = $ptr->{'words_total'};
+			$trans = translate ('Has written %u words');
+			printf $fh ("      $trans<br />\n", $words);
+
+			$chars = $ptr->{'chars_total'};
+			$trans = translate ('Has written %u chars');
+			printf $fh ("      $trans<br />\n", $chars);
+
+			$num = $words / $lines;
 			$trans = translate ('Has written %.1f words per line');
 			printf $fh ("      $trans<br />\n", $num);
 
-			$num = $DATA->{'byname'}{$name}{'chars'} / $DATA->{'byname'}{$name}{'lines'};
+			$num = $chars / $lines;
 			$trans = translate ('Has written %.1f characters per line');
 			printf $fh ("      $trans<br />\n", $num);
 		}
 
 		print $fh qq#    </td>\n    <td class="numbers">\n#;
+
+		# FIXME
 
 		if (defined ($DATA->{'byname'}{$name}{'op_given'}))
 		{

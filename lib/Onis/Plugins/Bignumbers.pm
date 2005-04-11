@@ -3,12 +3,17 @@ package Onis::Plugins::Bignumbers;
 use strict;
 use warnings;
 
+use Exporter;
+
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(get_main_nick register_plugin));
 use Onis::Data::Persistent ();
 use Onis::Users (qw(nick_to_name));
 use Onis::Plugins::Core (qw(get_core_nick_counters));
+
+@Onis::Plugins::Bignumbers::EXPORT_OK = (qw(get_bignumbers));
+@Onis::Plugins::Bignumbers::ISA = ('Exporter');
 
 our $BigNumbers = Onis::Data::Persistent->new ('BigNumbers', 'nick', qw(questions uppercase smiley_happy smiley_sad));
 our $CalcData = {};
@@ -390,4 +395,16 @@ sub sort_by_field
 	}
 
 	return (@retval);
+}
+
+sub get_bignumbers
+{
+	my $nick = shift;
+
+	if (!defined ($CalcData->{$nick}))
+	{
+		return ({});
+	}
+
+	return ($CalcData->{$nick});
 }
