@@ -241,3 +241,17 @@ EOF
 
 	print $fh "</table>\n\n";
 }
+
+sub get_conversations
+{
+	my $nick = shift;
+
+	if (!defined ($ConversationData->{$nick}))
+	{
+		return ({});
+	}
+	else
+	{
+		return ($ConversationData->{$nick});
+	}
+}

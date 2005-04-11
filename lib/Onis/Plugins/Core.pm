@@ -24,7 +24,7 @@ use Onis::Users (qw(get_realname get_link get_image ident_to_name));
 use Onis::Data::Core qw#get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
 use Onis::Data::Persistent;
 
-@Onis::Plugins::Core::EXPORT_OK = (qw(get_core_nick_counters));
+@Onis::Plugins::Core::EXPORT_OK = (qw(get_core_nick_counters get_sorted_nicklist));
 @Onis::Plugins::Core::ISA = ('Exporter');
 
 our $NickLinesCounter = Onis::Data::Persistent->new ('NickLinesCounter', 'nick',
@@ -49,6 +49,7 @@ our $NickCharsCounter = Onis::Data::Persistent->new ('NickCharsCounter', 'nick',
 our $QuoteCache = {}; # Saves per-nick information without any modification
 our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
 our $NickData = {};  # Same as above, but for nicks rather than quotes.
+our $SortedNicklist = [];
 
 our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 our $QuoteCacheSize = 10;
@@ -557,10 +558,14 @@ EOF
 	print $fh "    <th>$trans</th>\n",
 	"  </tr>\n";
 
-	for (sort
+	@$SortedNicklist = sort
 	{
 		$NickData->{$b}{"${sort_field}_total"} <=> $NickData->{$a}{"${sort_field}_total"}
-	} (@nicks))
+	} (@nicks);
+
+	@nicks = ();
+
+	for (@$SortedNicklist)
 	{
 		my $nick = $_;
 		my $ident = nick_to_ident ($nick);
@@ -831,8 +836,17 @@ sub bar
 
 =item B<get_core_nick_counters> (I<$nick>)
 
-Returns the total I<lines>, I<words> and I<characters> written by the given
-nick.
+Returns a hash-ref that containes all the nick-counters available. It looks
+like this:
+
+    {
+        lines => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+	words => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+	chars => [qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)],
+	lines_total => 0,
+	words_total => 0,
+	chars_total => 0
+    }
 
 =cut
 
@@ -840,14 +854,24 @@ sub get_core_nick_counters
 {
 	my $nick = shift;
 
-	if (defined ($NickData->{$nick}))
+	if (!defined ($NickData->{$nick}))
 	{
-		return ($NickData->{$nick}{'lines_total'},
-			$NickData->{$nick}{'words_total'},
-			$NickData->{$nick}{'chars_total'});
+		return ({});
 	}
 
-	return (qw());
+	return ($NickData->{$nick});
+}
+
+=item B<get_sorted_nicklist> ()
+
+Returns an array-ref that containes all nicks, sorted by the field given in the
+config-file.
+
+=cut
+
+sub get_sorted_nicklist
+{
+	return ($SortedNicklist);
 }
 
 =back

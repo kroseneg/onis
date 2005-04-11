@@ -82,14 +82,14 @@ sub calculate
 		
 		if (!defined ($CalcData->{$main}))
 		{
-			my ($lines, $words, $chars) = get_core_nick_counters ($main);
-			next unless (defined ($chars));
+			my $core_data = get_core_nick_counters ($main);
+			next unless (%$core_data);
 
 			$CalcData->{$main} =
 			{
-				lines => $lines,
-				words => $words,
-				chars => $chars,
+				lines => $core_data->{'lines_total'},
+				words => $core_data->{'words_total'},
+				chars => $core_data->{'chars_total'},
 				questions    => 0,
 				uppercase    => 0,
 				smiley_happy => 0,

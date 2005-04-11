@@ -9,6 +9,9 @@ use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(get_main_nick register_plugin));
 use Onis::Users (qw(ident_to_name get_link get_image));
 
+use Onis::Plugin::Core (qw(get_core_nick_counters));
+use Onis::Plugin::Conversations (qw(get_conversations));
+
 our $DISPLAY_IMAGES = 0;
 our $DEFAULT_IMAGE = '';
 
@@ -129,15 +132,7 @@ return (1);
 
 sub output
 {
-	my @names = sort
-	{
-		$DATA->{'byname'}{$b}{$SORT_BY} <=> $DATA->{'byname'}{$a}{$SORT_BY}
-	} grep
-	{
-		defined ($DATA->{'byname'}{$_}{'words'})
-	} (keys (%{$DATA->{'byname'}}));
-
-	return (undef) unless (@names);
+	my $nicks_ref = get_sorted_nicklist ();
 	
 	my $max = $PLUGIN_MAX;
 	
@@ -149,9 +144,15 @@ sub output
 	my $max_time = 0;
 	my $max_conv = 0;
 
-	for (@names)
+	my @nicks = $nicks_ref->[0 .. ($max - 1)];
+	my $nick_data = {};
+
+	for (@nicks)
 	{
-		my $name = $_;
+		my $nick = $_;
+
+		$nick_data->{$nick} = get_core_nick_counters ($nick);
+		$nick_data->{$nick}{'conversations'} = get_conversations ($nick);
 		
 		if (defined ($DATA->{'byname'}{$name}{'chars_time'}))
 		{
