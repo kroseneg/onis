@@ -414,7 +414,7 @@ sub activetimes
 # $most_lines
 	for (keys %$NickData)
 	{
-		my $nick = shift;
+		my $nick = $_;
 
 		for (my $i = 0; $i < 24; $i++)
 		{
@@ -791,10 +791,9 @@ EOF
 sub bar
 {
 	my $max_num = shift;
-
 	my $source = shift;
 
-	confess unless (ref ($source eq 'ARRAY'));
+	confess () unless (ref ($source) eq 'ARRAY');
 
 	# BAR_WIDTH is a least 10
 	my $max_width = $BAR_WIDTH - 4;

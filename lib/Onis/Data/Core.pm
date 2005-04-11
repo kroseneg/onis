@@ -42,7 +42,7 @@ our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'cou
 qw(
 	store unsharp calculate_nicks 
 
-	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick
+	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick nick_to_name
 	get_total_lines nick_rename print_output register_plugin
 );
 @Onis::Data::Core::ISA = ('Exporter');
@@ -322,7 +322,7 @@ sub calculate_nicks
 	
 	for ($ChatterList->keys ())
 	{
-		my $chatter = shift;
+		my $chatter = $_;
 		my ($nick, $ident) = split (m/!/, $chatter);
 		my $name = ident_to_name ($ident);
 		my ($counter) = $ChatterList->get ($chatter);
@@ -604,6 +604,28 @@ sub ident_to_nick
 	}
 }
 
+=item I<$name> = B<nick_to_name> (I<$nick>)
+
+Return the name associated with I<$nick>. This function uses B<ident_to_name>
+(see L<Onis::Users>).
+
+=cut
+
+sub nick_to_name
+{
+	my $nick = shift;
+	my $ident = nick_to_ident ($nick);
+
+	if ($ident)
+	{
+		return (ident_to_name ($ident));
+	}
+	else
+	{
+		return ('');
+	}
+}
+
 =item I<$lines> = B<get_total_lines> ()
 
 Returns the total number of lines parsed so far.
@@ -644,7 +666,8 @@ Print the output. Should be called only once..
 
 sub print_output
 {
-	if (!get_total_lines ())
+	# FIXME FIXME FIXME
+	if (!get_total_lines () and 0)
 	{
 		print STDERR <<'MESSAGE';
 

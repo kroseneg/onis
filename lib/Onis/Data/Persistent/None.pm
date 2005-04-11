@@ -99,7 +99,7 @@ sub get
 
 	if ($::DEBUG & 0x0200)
 	{
-		print STDOUT $/, __FILE__, ': GET(', $obj->{'id'}, ', ', $key, ') = (' . join (', ', @{$obj->{'fields'}}) . ')';
+		print STDOUT $/, __FILE__, ': GET(', $obj->{'id'}, ', ', $key, ') = (' . join (', ', @{$obj->{'data'}{$key}}) . ')';
 	}
 
 	return (@{$obj->{'data'}{$key}});

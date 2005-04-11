@@ -6,10 +6,10 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(get_main_nick register_plugin));
+use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
 use Onis::Users (qw(ident_to_name get_link get_image));
 
-use Onis::Plugins::Core (qw(get_core_nick_counters));
+use Onis::Plugins::Core (qw(get_core_nick_counters get_sorted_nicklist));
 use Onis::Plugins::Conversations (qw(get_conversations));
 use Onis::Plugins::Bignumbers (qw(get_bignumbers));
 use Onis::Plugins::Interestingnumbers (qw(get_interestingnumbers));

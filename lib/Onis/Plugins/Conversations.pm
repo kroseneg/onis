@@ -6,8 +6,8 @@ use warnings;
 use Onis::Config qw(get_config);
 use Onis::Html qw(get_filehandle);
 use Onis::Language qw(translate);
-use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident);
-use Onis::Users qw(ident_to_name);
+use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident nick_to_name);
+use Onis::Users (qw(ident_to_name));
 use Onis::Data::Persistent;
 
 our $ConversationCache = Onis::Data::Persistent->new ('ConversationCache', 'partners', qw(time0 time1 time2 time3));
@@ -98,9 +98,10 @@ sub calculate
 		$nick_from = get_main_nick ($nick_from);
 		$nick_to   = get_main_nick ($nick_to);
 
-		next if (!$nick_from or !$nick_to or ($nick_from eq $nick_to));
+		next if (!$nick_from or !$nick_to);
+		next if ($nick_from eq $nick_to);
 
-		if ($ConversationData->{$nick_from}{$nick_to})
+		if (!defined ($ConversationData->{$nick_from}{$nick_to}))
 		{
 			$ConversationData->{$nick_from}{$nick_to} =
 			{
@@ -158,6 +159,7 @@ sub output
 
 	my @img = get_config ('horizontal_images');
 
+	# FIXME
 	my @data = get_top (10);
 	return (undef) unless (@data);
 
@@ -172,8 +174,8 @@ sub output
 
 		for (my $i = 0; $i < 4; $i++)
 		{
-			$sum0 += $rec->{'users'}{$nick0}[$i];
-			$sum1 += $rec->{'users'}{$nick1}[$i];
+			$sum0 += $rec->{'nicks'}{$nick0}[$i];
+			$sum1 += $rec->{'nicks'}{$nick1}[$i];
 		}
 
 		$max_num = $sum0 if ($max_num < $sum0);

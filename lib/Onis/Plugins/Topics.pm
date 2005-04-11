@@ -6,7 +6,7 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin));
+use Onis::Data::Core (qw(register_plugin nick_to_name));
 use Onis::Data::Persistent ();
 
 our $TopicCache = Onis::Data::Persistent->new ('TopicCache', 'time', qw(text nick));

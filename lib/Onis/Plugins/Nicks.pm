@@ -3,11 +3,11 @@ package Onis::Plugins::Nicks;
 use strict;
 use warnings;
 
+use Onis::Config (qw(get_config));
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin nick_to_ident));
+use Onis::Data::Core (qw(register_plugin get_main_nick nick_to_ident nick_to_name));
 use Onis::Data::Persistent ();
-use Onis::Users (qw(nick_to_name));
 
 register_plugin ('TEXT', \&add);
 register_plugin ('ACTION', \&add);
@@ -64,10 +64,10 @@ sub calculate
 		$max = $tmp if ($tmp);
 	}
 
-	for ($MentionedNicksData->keys ())
+	for ($MentionedNicksCache->keys ())
 	{
 		my $nick = $_;
-		my ($counter, $lastusedtime, $lastusedby) = $MentionedNicksData->get ($nick);
+		my ($counter, $lastusedtime, $lastusedby) = $MentionedNicksCache->get ($nick);
 		die unless (defined ($lastusedby));
 		
 		$lastusedby = get_main_nick ($lastusedby);
@@ -75,7 +75,7 @@ sub calculate
 	}
 
 	@$MentionedNicksData = sort { $b->[1] <=> $a->[1] } (@data);
-	splice (@$MentionedNicksData, $max);
+	splice (@$MentionedNicksData, $max) if (scalar (@$MentionedNicksData) > $max);
 }
 
 sub output

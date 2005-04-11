@@ -8,9 +8,8 @@ use Exporter;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin));
+use Onis::Data::Core (qw(register_plugin get_main_nick nick_to_name));
 use Onis::Data::Persistent;
-use Onis::Users (qw(nick_to_name));
 
 @Onis::Plugins::Interestingnumbers::EXPORT_OK = (qw(get_interestingnumbers));
 @Onis::Plugins::Interestingnumbers::ISA = ('Exporter');
@@ -160,7 +159,7 @@ sub calculate
 			$soliloquies) = $InterestingNumbersCache->get ($nick);
 		my $main = get_main_nick ($nick);
 
-		die unless ($main);
+		next unless ($main);
 
 		if (!defined ($InterestingNumbersData->{$main}))
 		{

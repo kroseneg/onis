@@ -3,13 +3,12 @@ package Onis::Users;
 use strict;
 use warnings;
 use Exporter;
-use Onis::Config qw#get_config#;
-use Onis::Data::Core qw(nick_to_ident);
-use Onis::Data::Persistent;
+use Onis::Config (qw(get_config));
+use Onis::Data::Persistent ();
 
 @Onis::Users::EXPORT_OK =
 (qw(
-	ident_to_name chatter_to_name nick_to_name name_to_ident
+	ident_to_name chatter_to_name name_to_ident
 	get_realname get_link get_image
 ));
 @Onis::Users::ISA = ('Exporter');
@@ -24,12 +23,11 @@ Parses user-info and provides query-routines. The definition of "name" can be fo
 
 =head1 USAGE
 
-    use Onis::Users qw#ident_to_name chatter_to_name nick_to_name get_realname get_link get_image#;
+    use Onis::Users qw#ident_to_name chatter_to_name get_realname get_link get_image#;
 
     # Functions to query the name
     $name = ident_to_name ($ident);
     $name = chatter_to_name ($chatter);
-    $name = nick_to_name ($nick);
 
     # Functions to query a name's properties
     my $realname  = get_realname ($name);
@@ -242,29 +240,6 @@ sub chatter_to_name
 	my ($nick, $ident) = split (m/!/, $chatter);
 
 	return (ident_to_name ($ident));
-}
-
-=item B<nick_to_name> (I<$nick>)
-
-Return the name associated with I<$nick>. This function uses B<nick_to_ident>
-(see L<Onis::Data::Core>) to convert I<$nick> to an ident and then calls
-B<ident_to_name>.
-
-=cut
-
-sub nick_to_name
-{
-	my $nick = shift;
-	my $ident = nick_to_ident ($nick);
-
-	if ($ident)
-	{
-		return (ident_to_name ($ident));
-	}
-	else
-	{
-		return ('');
-	}
 }
 
 =item B<name_to_ident> (I<$name>)

@@ -7,9 +7,8 @@ use Exporter;
 
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(get_main_nick register_plugin));
+use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
 use Onis::Data::Persistent ();
-use Onis::Users (qw(nick_to_name));
 use Onis::Plugins::Core (qw(get_core_nick_counters));
 
 @Onis::Plugins::Bignumbers::EXPORT_OK = (qw(get_bignumbers));
