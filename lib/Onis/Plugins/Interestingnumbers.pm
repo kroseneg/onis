@@ -6,9 +6,9 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(nick_to_ident register_plugin));
-
-our $SOLILOQUIES = {};
+use Onis::Data::Core (qw(register_plugin));
+use Onis::Data::Persistent;
+use Onis::Users (qw(nick_to_name));
 
 register_plugin ('ACTION', \&add_action);
 register_plugin ('JOIN', \&add_join);
@@ -17,7 +17,11 @@ register_plugin ('MODE', \&add_mode);
 register_plugin ('TEXT', \&add_text);
 register_plugin ('OUTPUT', \&output);
 
-our $InterestingNumbersCache = ('InterestingNumbersCache', 'nick', qw(actions joins kicks_given kicks_received modes soliloquies));
+our $InterestingNumbersCache = Onis::Data::Persistent->new ('InterestingNumbersCache', 'nick', qw(actions joins kicks_given kicks_received ops_given ops_taken soliloquies));
+our $InterestingNumbersData = {};
+
+our $SoliloquiesNick = '';
+our $SoliloquiesCount = 0;
 
 our $SOLILOQUIES_COUNT = 5;
 if (get_config ('soliloquies_count'))
@@ -33,51 +37,55 @@ print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
 
+sub get_or_empty
+{
+	my $nick = shift;
+	my @data = $InterestingNumbersCache->get ($nick);
+	@data = (0, 0, 0, 0, 0, 0) unless (@data);
+	return (@data);
+}
+
 sub add_action
 {
 	my $data = shift;
 	my $nick = $data->{'nick'};
 
-	my $ident = $data->{'ident'};
-	
-	$DATA->{'byident'}{$ident}{'actions'}++;
-	
-	return (1);
+	my @data = get_or_empty ($nick);
+	$data[0]++;
+	$InterestingNumbersCache->put ($nick, @data);
 }
 
 sub add_join
 {
 	my $data = shift;
+	my $nick = $data->{'nick'};
 
-	my $ident = $data->{'ident'};
-	
-	$DATA->{'byident'}{$ident}{'joins'}++;
-	
-	return (1);
+	my @data = get_or_empty ($nick);
+	$data[1]++;
+	$InterestingNumbersCache->put ($nick, @data);
 }
 
 sub add_kick
 {
 	my $data = shift;
 
-	my $ident_give = $data->{'ident'};
-	my $ident_rcvt = nick_to_ident ($data->{'nick_received'});
+	my $nick_g = $data->{'nick'};
+	my $nick_r = $data->{'nick_received'};
 
-	$DATA->{'byident'}{$ident_give}{'kick_given'}++;
+	my @data = get_or_empty ($nick_g);
+	$data[2]++;
+	$InterestingNumbersCache->put ($nick_g, @data);
 
-	if ($ident_rcvt)
-	{
-		$DATA->{'byident'}{$ident_rcvt}{'kick_received'}++;
-	}
-	
-	return (1);
+	@data = get_or_empty ($nick_r);
+	$data[3]++;
+	$InterestingNumbersCache->put ($nick_r, @data);
 }
 
 sub add_mode
 {
 	my $data = shift;
 
-	my $ident = $data->{'ident'};
+	my $nick = $data->{'nick'};
 	my $text = $data->{'mode'};
 	
 	my ($mode) = split (m/\s+/, $text);
@@ -91,20 +99,19 @@ sub add_mode
 			$modifier = $tmp;
 			next;
 		}
-		elsif (!$modifier)
-		{
-			next;
-		}
 
+		next unless ($modifier);
+		
 		if ($tmp eq 'o')
 		{
+			my @data = get_or_empty ($nick);
 			if ($modifier eq '-')
 			{
-				$DATA->{'byident'}{$ident}{'op_taken'}++;
+				$data[5]++;
 			}
 			else # ($modifier eq '+')
 			{
-				$DATA->{'byident'}{$ident}{'op_given'}++;
+				$data[4]++;
 			}
 		}
 	}
@@ -116,37 +123,74 @@ sub add_text
 {
 	my $data = shift;
 
-	my $ident = $data->{'ident'};
+	my $nick = $data->{'nick'};
 
-	if (!defined ($SOLILOQUIES->{'ident'}))
+	if ($nick eq $SoliloquiesNick)
 	{
-		$SOLILOQUIES->{'ident'} = $ident;
-		$SOLILOQUIES->{'count'} = 1;
+		$SoliloquiesCount++;
+
+		if ($SoliloquiesCount == $SOLILOQUIES_COUNT)
+		{
+			my @data = get_or_empty ($nick);
+			$data[6]++;
+			$InterestingNumbersCache->put ($nick, @data);
+		}
 	}
 	else
 	{
-		if ($SOLILOQUIES->{'ident'} eq $ident)
-		{
-			my $count = ++$SOLILOQUIES->{'count'};
-			if ($count == $SOLILOQUIES_COUNT)
-			{
-				$DATA->{'byident'}{$ident}{'soliloquies'}++;
-			}
-		}
-		else
-		{
-			$SOLILOQUIES->{'ident'} = $ident;
-			$SOLILOQUIES->{'count'} = 1;
-		}
+		$SoliloquiesNick = $nick;
+		$SoliloquiesCount = 1;
 	}
-
-	return (1);
 }
+
+sub calculate
+{
+	for ($InterestingNumbersCache->keys ())
+	{
+		my $nick = $_;
+		my ($actions, $joins,
+			$kicks_given, $kicks_received,
+			$ops_given, $ops_taken,
+			$soliloquies) = $InterestingNumbersCache->get ($nick);
+		my $main = get_main_nick ($nick);
+
+		die unless ($main);
+
+		if (!defined ($InterestingNumbersData->{$main}))
+		{
+			$InterestingNumbersData->{$main} =
+			{
+				actions		=> 0,
+				joins		=> 0,
+				kicks_given	=> 0,
+				kicks_received	=> 0,
+				ops_given	=> 0,
+				ops_taken	=> 0,
+				soliloquies	=> 0
+			};
+		}
+
+		$InterestingNumbersData->{$main}{'actions'}        += $actions;
+		$InterestingNumbersData->{$main}{'joins'}          += $joins;
+		$InterestingNumbersData->{$main}{'kicks_given'}    += $kicks_given;
+		$InterestingNumbersData->{$main}{'kicks_received'} += $kicks_received;
+		$InterestingNumbersData->{$main}{'ops_given'}      += $ops_given;
+		$InterestingNumbersData->{$main}{'ops_taken'}      += $ops_taken;
+		$InterestingNumbersData->{$main}{'soliloquies'}    += $soliloquies;
+	}
+}
+
+
+
 
 sub output
 {
-	my $first;
-	my $second;
+	calculate ();
+	
+	my $first_nick;
+	my $first_name;
+	my $second_nick;
+	my $second_name;
 
 	my $fh = get_filehandle ();
 
@@ -158,161 +202,175 @@ sub output
     <th>$trans</th>
   </tr>
 EOF
-	($first, $second) = sort_by_field ('kick_received');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('kick_received');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'kick_received'};
+		my $num = $InterestingNumbersData->{$first_nick}{'kick_received'};
 		$trans = translate ('kick_received0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_nick, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'kick_received'};
+			$num = $InterestingNumbersData->{$second_nick}{'kick_received'};
 			$trans = translate ('kick_received1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_nick, $num);
 			print $fh '</span>';
 		}
 		
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('kick_given');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('kick_given');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'kick_given'};
+		my $num = $InterestingNumbersData->{$first_nick}{'kick_given'};
 		$trans = translate ('kick_given0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'kick_given'};
+			$num = $InterestingNumbersData->{$second_nick}{'kick_given'};
 			$trans = translate ('kick_given1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('op_given');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('op_given');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'op_given'};
+		my $num = $InterestingNumbersData->{$first_nick}{'op_given'};
 		$trans = translate ('op_given0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'op_given'};
+			$num = $InterestingNumbersData->{$second_nick}{'op_given'};
 			$trans = translate ('op_given1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 		
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('op_taken');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('op_taken');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'op_taken'};
+		my $num = $InterestingNumbersData->{$first_nick}{'op_taken'};
 		$trans = translate ('op_taken0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'op_taken'};
+			$num = $InterestingNumbersData->{$second_nick}{'op_taken'};
 			$trans = translate ('op_taken1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 		
 		print $fh "</td>\n  </tr>\n";
 	}
 
-	($first, $second) = sort_by_field ('actions');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('actions');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'actions'};
+		my $num = $InterestingNumbersData->{$first_nick}{'actions'};
 		$trans = translate ('action0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'actions'};
+			$num = $InterestingNumbersData->{$second_nick}{'actions'};
 			$trans = translate ('action1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 
 		print $fh "</td>\n  </tr>\n";
 	}
 	
-	($first, $second) = sort_by_field ('soliloquies');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('soliloquies');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'soliloquies'};
+		my $num = $InterestingNumbersData->{$first_nick}{'soliloquies'};
 		$trans = translate ('soliloquies0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'soliloquies'};
+			$num = $InterestingNumbersData->{$second_nick}{'soliloquies'};
 			$trans = translate ('soliloquies1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 
 		print $fh "</td>\n  </tr>\n";
 	}
 	
-	($first, $second) = sort_by_field ('joins');
-	if ($first)
+	($first_nick, $second_nick) = sort_by_field ('joins');
+	if ($first_nick)
 	{
-		my $num = $DATA->{'byname'}{$first}{'joins'};
+		my $num = $InterestingNumbersData->{$first_nick}{'joins'};
 		$trans = translate ('joins0: %s %u');
+		$first_name = nick_to_name ($first_nick) || $first_nick;
 
 		print $fh "  <tr>\n    <td>";
-		printf $fh ($trans, $first, $num);
+		printf $fh ($trans, $first_name, $num);
 		
-		if ($second)
+		if ($second_nick)
 		{
-			$num = $DATA->{'byname'}{$second}{'joins'};
+			$num = $InterestingNumbersData->{$second_nick}{'joins'};
 			$trans = translate ('joins1: %s %u');
+			$second_name = nick_to_name ($second_nick) || $second_nick;
 
 			print $fh "<br />\n",
 			qq#      <span class="small">#;
-			printf $fh ($trans, $second, $num);
+			printf $fh ($trans, $second_name, $num);
 			print $fh '</span>';
 		}
 
@@ -328,15 +386,10 @@ sub sort_by_field
 	
 	my @retval = sort
 	{
-		$DATA->{'byname'}{$b}{$field}
+		$InterestingNumbersData->{$b}{$field}
 		<=>
-		$DATA->{'byname'}{$a}{$field}
-	} grep
-	{
-		defined ($DATA->{'byname'}{$_}{$field})
-			and defined ($DATA->{'byname'}{$_}{'lines'})
-			and ($DATA->{'byname'}{$_}{'lines'} >= 100)
-	} (keys (%{$DATA->{'byname'}}));
+		$InterestingNumbersData->{$a}{$field}
+	} (keys (%$InterestingNumbersData));
 
 	while (scalar (@retval) < 2)
 	{
