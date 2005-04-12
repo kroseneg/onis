@@ -22,7 +22,7 @@ register_plugin ('TEXT', \&add_text);
 register_plugin ('OUTPUT', \&output);
 
 our $InterestingNumbersCache = Onis::Data::Persistent->new ('InterestingNumbersCache', 'nick',
-	qw(actions joins kicks_given kicks_received ops_given ops_taken soliloquies));
+	qw(actions joins kick_given kick_received op_given op_taken soliloquies));
 our $InterestingNumbersData = {};
 
 our $SoliloquiesNick = '';
@@ -154,8 +154,8 @@ sub calculate
 	{
 		my $nick = $_;
 		my ($actions, $joins,
-			$kicks_given, $kicks_received,
-			$ops_given, $ops_taken,
+			$kick_given, $kick_received,
+			$op_given, $op_taken,
 			$soliloquies) = $InterestingNumbersCache->get ($nick);
 		my $main = get_main_nick ($nick);
 
@@ -167,20 +167,20 @@ sub calculate
 			{
 				actions		=> 0,
 				joins		=> 0,
-				kicks_given	=> 0,
-				kicks_received	=> 0,
-				ops_given	=> 0,
-				ops_taken	=> 0,
+				kick_given	=> 0,
+				kick_received	=> 0,
+				op_given	=> 0,
+				op_taken	=> 0,
 				soliloquies	=> 0
 			};
 		}
 
 		$InterestingNumbersData->{$main}{'actions'}        += $actions;
 		$InterestingNumbersData->{$main}{'joins'}          += $joins;
-		$InterestingNumbersData->{$main}{'kicks_given'}    += $kicks_given;
-		$InterestingNumbersData->{$main}{'kicks_received'} += $kicks_received;
-		$InterestingNumbersData->{$main}{'ops_given'}      += $ops_given;
-		$InterestingNumbersData->{$main}{'ops_taken'}      += $ops_taken;
+		$InterestingNumbersData->{$main}{'kick_given'}     += $kick_given;
+		$InterestingNumbersData->{$main}{'kick_received'}  += $kick_received;
+		$InterestingNumbersData->{$main}{'op_given'}       += $op_given;
+		$InterestingNumbersData->{$main}{'op_taken'}       += $op_taken;
 		$InterestingNumbersData->{$main}{'soliloquies'}    += $soliloquies;
 	}
 }
@@ -408,7 +408,7 @@ sub get_interestingnumbers
 {
 	my $nick = shift;
 
-	if (defined ($InterestingNumbersData->{$nick}))
+	if (!defined ($InterestingNumbersData->{$nick}))
 	{
 		return ({});
 	}

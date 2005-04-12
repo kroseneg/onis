@@ -146,8 +146,10 @@ sub output
 	my $max_time = 0;
 	my $max_conv = 0;
 
-	my @nicks = $nicks_ref->[0 .. ($max - 1)];
+	my @nicks = @$nicks_ref;
 	my $nick_data = {};
+
+	splice (@nicks, $max) if (scalar (@nicks) > $max);
 
 	for (@nicks)
 	{
@@ -160,14 +162,14 @@ sub output
 		
 		for (my $i = 0; $i < 12; $i++)
 		{
-			$num = $nick_data->{$nick}{'lines'}[2 * $i] + $nick_data->{$nick}{'lines'}[(2 * $i) + 1];
+			$num = $nick_data->{$nick}{'chars'}[2 * $i] + $nick_data->{$nick}{'chars'}[(2 * $i) + 1];
 			$max_time = $num if ($max_time < $num);
 		}
 
 		for (keys %{$nick_data->{$nick}{'conversations'}})
 		{
 			my $other = $_;
-			my $ptr = $nick_data->{$nick}{'conversations'}{'nicks'}{$other};
+			my $ptr = $nick_data->{$nick}{'conversations'}{$other}{'nicks'}{$nick};
 			$num = $ptr->[0] + $ptr->[1] + $ptr->[2] + $ptr->[3];
 			$max_conv = $num if ($max_conv < $num);
 		}
@@ -252,6 +254,8 @@ sub output
 			$trans = translate ('Has written %u chars');
 			printf $fh ("      $trans<br />\n", $chars);
 
+			$lines ||= 1;
+
 			$num = $words / $lines;
 			$trans = translate ('Has written %.1f words per line');
 			printf $fh ("      $trans<br />\n", $num);
@@ -266,16 +270,16 @@ sub output
 		if (%{$ptr->{'interestingnumbers'}})
 		{
 			$trans = translate ('Has given %u ops');
-			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'ops_given'});
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'op_given'});
 		
 			$trans = translate ('Has taken %u ops');
-			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'ops_taken'});
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'op_taken'});
 
 			$trans = translate ('Has kicked out %u people');
-			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kicks_given'});
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kick_given'});
 		
 			$trans = translate ('Has been kicked out %u times');
-			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kicks_received'});
+			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'kick_received'});
 
 			$trans = translate ('Has performed %u actions');
 			printf $fh ("      $trans<br />\n", $ptr->{'interestingnumbers'}{'actions'});

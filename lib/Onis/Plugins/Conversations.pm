@@ -3,12 +3,17 @@ package Onis::Plugins::Conversations;
 use strict;
 use warnings;
 
+use Exporter;
+
 use Onis::Config qw(get_config);
 use Onis::Html qw(get_filehandle);
 use Onis::Language qw(translate);
 use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident nick_to_name);
 use Onis::Users (qw(ident_to_name));
 use Onis::Data::Persistent;
+
+@Onis::Plugins::Conversations::EXPORT_OK = (qw(get_conversations));
+@Onis::Plugins::Conversations::ISA = ('Exporter');
 
 our $ConversationCache = Onis::Data::Persistent->new ('ConversationCache', 'partners', qw(time0 time1 time2 time3));
 our $ConversationData = {};
@@ -210,7 +215,7 @@ EOF
 		for (3, 2, 1, 0)
 		{
 			my $i = $img[$_];
-			my $w = int (0.5 + ($rec->{'users'}{$nick0}[$_] * $factor));
+			my $w = int (0.5 + ($rec->{'nicks'}{$nick0}[$_] * $factor));
 			my $c = '';
 			$w ||= 1;
 
@@ -227,7 +232,7 @@ EOF
 		for (0, 1, 2, 3)
 		{
 			my $i = $img[$_];
-			my $w = int (0.5 + ($rec->{'users'}{$nick1}[$_] * $factor));
+			my $w = int (0.5 + ($rec->{'nicks'}{$nick1}[$_] * $factor));
 			my $c = '';
 			$w ||= 1;
 

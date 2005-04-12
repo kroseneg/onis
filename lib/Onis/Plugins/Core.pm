@@ -362,13 +362,13 @@ sub calculate
 			$NickData->{$main}{'words_total'} = $sum;
 		}
 
-		@counter = $NickWordsCounter->get ($nick);
+		@counter = $NickCharsCounter->get ($nick);
 		if (@counter)
 		{
 			my $sum = 0;
 			for (my $i = 0; $i < 24; $i++)
 			{
-				$NickData->{$main}{'words'}[$i] += $counter[$i];
+				$NickData->{$main}{'chars'}[$i] += $counter[$i];
 				$sum += $counter[$i];
 			}
 			$NickData->{$main}{'chars_total'} = $sum;
@@ -570,6 +570,7 @@ EOF
 		my $nick = $_;
 		my $ident = nick_to_ident ($nick);
 		my $name  = ident_to_name ($ident);
+		my $print = $name || $nick;
 
 		$linescount++;
 
@@ -580,11 +581,11 @@ EOF
 		{
 			my $quote = translate ('-- no quote available --');
 
-			if (defined ($QuoteData->{$nick}))
+			if (@{$QuoteData->{$nick}})
 			{
 				my $num = scalar (@{$QuoteData->{$nick}});
 				my $rand = int (rand ($num));
-				$quote = html_escape ($QuoteData->{$nick}[$rand]);
+				$quote = html_escape ($QuoteData->{$nick}[$rand][1]);
 			}
 
 			my $link = '';
@@ -637,11 +638,11 @@ EOF
 
 			if ($link)
 			{
-				print $fh qq#<a href="$link">$name</a></td>\n#
+				print $fh qq#<a href="$link">$print</a></td>\n#
 			}
 			else
 			{
-				print $fh qq#$name</td>\n#;
+				print $fh qq#$print</td>\n#;
 			}
 		
 			if ($DISPLAY_LINES ne 'NONE')
@@ -751,7 +752,7 @@ EOF
 				qq#  <tr>\n#;
 			}
 			
-			print $fh qq#    <td title="$title">$name ($total)</td>\n#;
+			print $fh qq#    <td title="$title">$print ($total)</td>\n#;
 			
 			if ($row_in_this_table == $ShortLines and $col_in_this_table == 5)
 			{
