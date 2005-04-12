@@ -70,30 +70,69 @@ our $BAR_WIDTH  = 100;
 our $LongLines  = 50;
 our $ShortLines = 10;
 
+=head1 CONFIGURATION OPTIONS
+
+=over 4
+
+=item B<quote_cache_size>: I<10>
+
+Sets how many quotes are cached and, at the end, one is chosen at random.
+
+=cut
+
 if (get_config ('quote_cache_size'))
 {
 	my $tmp = get_config ('quote_cache_size');
 	$tmp =~ s/\D//g;
 	$QuoteCacheSize = $tmp if ($tmp);
 }
+
+=item B<quote_min>: I<30>
+
+Minimum number of characters in a line to be included in the quote-cache.
+
+=cut
+
 if (get_config ('quote_min'))
 {
 	my $tmp = get_config ('quote_min');
 	$tmp =~ s/\D//g;
 	$QuoteMin = $tmp if ($tmp);
 }
+=item B<quote_max>: I<80>
+
+Maximum number of characters in a line to be included in the quote-cache.
+
+=cut
+
 if (get_config ('quote_max'))
 {
 	my $tmp = get_config ('quote_max');
 	$tmp =~ s/\D//g;
 	$QuoteMax = $tmp if ($tmp);
 }
+
+=item B<min_word_length>: I<5>
+
+Sets how many word-characters in a row are considered to be a word. Or, in more
+normal terms: Sets the minimum length for words..
+
+=cut
+
 if (get_config ('min_word_length'))
 {
 	my $tmp = get_config ('min_word_length');
 	$tmp =~ s/\D//g;
 	$WORD_LENGTH = $tmp if ($tmp);
 }
+
+=item B<display_lines>: I<BOTH>
+
+Choses wether to display B<lines> as I<BAR>, I<NUMBER>, I<BOTH> or not at all
+(I<NONE>).
+
+=cut
+
 if (get_config ('display_lines'))
 {
 	my $tmp = get_config ('display_lines');
@@ -110,6 +149,13 @@ if (get_config ('display_lines'))
 		$/, __FILE__, ": Valid values are ``none'', ``bar'', ``number'' and ``both''. Using default value ``both''.";
 	}
 }
+
+=item B<display_words>: I<NONE>
+
+See L<display_lines>
+
+=cut
+
 if (get_config ('display_words'))
 {
 	my $tmp = get_config ('display_words');
@@ -126,6 +172,13 @@ if (get_config ('display_words'))
 		$/, __FILE__, ": Valid values are ``none'', ``bar'', ``number'' and ``both''. Using default value ``none''.";
 	}
 }
+
+=item B<display_chars>: I<NONE>
+
+See L<display_lines>
+
+=cut
+
 if (get_config ('display_chars'))
 {
 	my $tmp = get_config ('display_chars');
@@ -142,6 +195,14 @@ if (get_config ('display_chars'))
 		$/, __FILE__, ": Valid values are ``none'', ``bar'', ``number'' and ``both''. Using default value ``none''.";
 	}
 }
+
+=item B<display_times>: I<false>
+
+Wether or not to display a fixed width bar that shows when a user is most
+active.
+
+=cut
+
 if (get_config ('display_times'))
 {
 	my $tmp = get_config ('display_times');
@@ -160,6 +221,13 @@ if (get_config ('display_times'))
 		$/, __FILE__, ": Valid values are ``true'' and ``false''. Using default value ``false''.";
 	}
 }
+
+=item B<display_images>: I<false>
+
+Wether or not to display images in the main ranking.
+
+=cut
+
 if (get_config ('display_images'))
 {
 	my $tmp = get_config ('display_images');
@@ -178,10 +246,27 @@ if (get_config ('display_images'))
 		$/, __FILE__, ": Valid values are ``true'' and ``false''. Using default value ``false''.";
 	}
 }
+
+=item B<default_image>: I<http://www.url.org/image.png>
+
+Sets the URL to the default image. This is included as-is in the HTML. You have
+to take care of (absolute) paths yourself.
+
+=cut
+
 if (get_config ('default_image'))
 {
 	$DEFAULT_IMAGE = get_config ('default_image');
 }
+
+=item B<sort_by>: I<LINES>
+
+Sets by which field the output has to be sorted. This is completely independent
+from B<display_lines>, B<display_words> and B<display_chars>. Valid options are
+I<LINES>, I<WORDS> and I<CHARS>.
+
+=cut
+
 if (get_config ('sort_by'))
 {
 	my $tmp = get_config ('sort_by');
@@ -198,6 +283,14 @@ if (get_config ('sort_by'))
 		$/, __FILE__, ": Valid values are ``lines'' and ``words''. Using default value ``lines''.";
 	}
 }
+
+=item B<horizontal_images>: I<image1>, I<image2>, I<image3>, I<image4>
+
+Sets the B<four> images used for horizontal bars/graphs. As above: You have to
+take care of correctness of paths yourself.
+
+=cut
+
 if (get_config ('horizontal_images'))
 {
 	my @tmp = get_config ('horizontal_images');
@@ -218,24 +311,55 @@ if (get_config ('horizontal_images'))
 		$H_IMAGES[$i] = $tmp[$i];
 	}
 }
+
+=item B<bar_height>: I<130>
+
+Sets the height (in pixels) of the highest vertical graph.
+
+=cut
+
 if (get_config ('bar_height'))
 {
 	my $tmp = get_config ('bar_height');
 	$tmp =~ s/\D//g;
 	$BAR_HEIGHT = $tmp if ($tmp >= 10);
 }
+
+=item B<bar_width>: I<100>
+
+Sets the width (in pixels) of the widest horizontal graph.
+
+=cut
+
 if (get_config ('bar_width'))
 {
 	my $tmp = get_config ('bar_width');
 	$tmp =~ s/\D//g;
 	$BAR_WIDTH = $tmp if ($tmp >= 10);
 }
+
+=item B<longlines>: I<50>
+
+Sets the number of rows of the main ranking table.
+
+=cut
+
 if (get_config ('longlines'))
 {
 	my $tmp = get_config ('longlines');
 	$tmp =~ s/\D//g;
 	$LongLines = $tmp if ($tmp);
 }
+
+=item B<shortlines>: I<10>
+
+Sets the number of rows of the "they didn't write so much" table. There are six
+persons per line; you set the number of lines.
+
+=over
+
+=cut
+
 if (get_config ('shortlines'))
 {
 	my $tmp = get_config ('shortlines');

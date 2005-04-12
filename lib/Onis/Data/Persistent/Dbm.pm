@@ -28,7 +28,8 @@ Storage backend that uses DBM files for storing data permanently.
 
 =item B<dbm_directory>: I<E<lt>dirE<gt>>
 
-Directory in which the DBM-files are kept.
+Directory in which the DBM-files are kept. Defaults to the B<var>-directory in
+onis' main directory.. 
 
 =back
 
