@@ -380,8 +380,13 @@ sub calculate
 		}
 		if (defined ($QuoteCache->{$nick}))
 		{
-			my @new = sort (sub { $b->[0] <=> $a->[0] }, @{$QuoteCache->{$nick}}, @{$QuoteData->{$main}});
+			my @new = ();
+			push (@new, @{$QuoteData->{$main}}) if (@{$QuoteData->{$main}});
+			push (@new, @{$QuoteCache->{$nick}}) if (@{$QuoteCache->{$nick}});
+
+			@new = sort { $b->[0] <=> $a->[0] } (@new);
 			splice (@new, $QuoteCacheSize) if (scalar (@new) > $QuoteCacheSize);
+
 			$QuoteData->{$main} = \@new;
 		}
 	}
@@ -585,6 +590,10 @@ EOF
 			{
 				my $num = scalar (@{$QuoteData->{$nick}});
 				my $rand = int (rand ($num));
+
+				require Data::Dumper;
+				print STDOUT Data::Dumper->Dump ([$rand, $QuoteData->{$nick}], ['rand', "QuoteData->{$nick}"]);
+				
 				$quote = html_escape ($QuoteData->{$nick}[$rand][1]);
 			}
 
