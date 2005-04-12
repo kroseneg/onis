@@ -107,7 +107,6 @@ sub put
 	my $obj    = shift;
 	my $key    = shift;
 	my @fields = @_;
-	my $db = $obj->{'data'};
 
 	if ($obj->{'num_fields'} != scalar (@fields))
 	{
@@ -172,9 +171,11 @@ sub keys
 	my $val;
 
 	no strict (qw(subs));
-	for ($db->seq ($key, $val, R_FIRST); $db->seq ($key, $val, R_NEXT) == 0;)
+	for (($key, $val) = $db->FIRSTKEY (); ($key, $val) = $db->NEXTKEY ($key);)
 	{
+		die unless (defined ($key));
 		next if (defined ($obj->{'cache'}{$key}));
+
 		$obj->{'cache'}{$key} = [split ($Alarm, $val)];
 	}
 
@@ -215,14 +216,14 @@ sub del
 	{
 		if (defined ($obj->{'cache'}{$key}))
 		{
-			$db->del ($key);
+			$db->DELETE ($key);
 			$obj->{'cache'}{$key} = undef;
 		}
 		# It's known that the key doesn't exist..
 	}
 	else
 	{
-		$db->del ($key);
+		$db->DELETE ($key);
 		$obj->{'cache'}{$key} = undef;
 	}
 }
@@ -239,7 +240,7 @@ sub sync
 
 		my $val = join ($Alarm, @{$obj->{'cache'}{$key}});
 
-		$db->put ($key, $val);
+		$db->STORE ($key, $val);
 		delete ($obj->{'cache'}{$key});
 	}
 
