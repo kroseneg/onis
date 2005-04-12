@@ -2,8 +2,10 @@ package Onis::Data::Persistent::None;
 
 use strict;
 use warnings;
+use vars (qw($TREE));
 
 use Carp qw(carp confess);
+use Exporter;
 
 =head1 NAME
 
@@ -19,7 +21,8 @@ None.
 
 =cut
 
-our $Tree = {};
+@Onis::Data::Persistent::None::EXPORT_OK = (qw($TREE));
+@Onis::Data::Persistent::None::ISA = ('Exporter');
 
 if ($::DEBUG & 0x0200)
 {
@@ -40,14 +43,14 @@ sub new
 	
 	my $id = $caller . ':' . $name;
 	
-	if (exists ($Tree->{$id}))
+	if (exists ($TREE->{$id}))
 	{
 		print STDERR $/, __FILE__, ": Name $name has been used in context $caller before.";
 		return (undef);
 	}
 
-	$Tree->{$id} = {};
-	$obj->{'data'} = $Tree->{$id};
+	$TREE->{$id} = {};
+	$obj->{'data'} = $TREE->{$id};
 
 	$obj->{'key'} = $key;
 	$obj->{'fields'} = [@fields];
