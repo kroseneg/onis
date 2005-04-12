@@ -46,7 +46,9 @@ our $NickCharsCounter = Onis::Data::Persistent->new ('NickCharsCounter', 'nick',
 	)
 );
 
-our $QuoteCache = {}; # Saves per-nick information without any modification
+our $QuoteCache = Onis::Data::Persistent->new ('QuoteCache', 'key', qw(epoch text));
+our $QuotePtr = Onis::Data::Persistent->new ('QuotePtr', 'nick', qw(pointer));
+
 our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
 our $NickData = {};  # Same as above, but for nicks rather than quotes.
 our $SortedNicklist = [];
@@ -300,21 +302,16 @@ sub add
 	if ((length ($text) >= $QuoteMin)
 				and (length ($text) <= $QuoteMax))
 	{
-		if (!defined ($QuoteCache->{$nick}))
-		{
-			$QuoteCache->{$nick} = [];
-		}
-		push (@{$QuoteCache->{$nick}}, [$time, $text]);
-	}
+		my ($pointer) = $QuotePtr->get ($nick);
+		$pointer ||= 0;
 
-	if (defined ($QuoteCache->{$nick}))
-	{
-		while (scalar (@{$QuoteCache->{$nick}}) > $QuoteCacheSize)
-		{
-			shift (@{$QuoteCache->{$nick}});
-		}
-	}
+		my $key = sprintf ("%s:%02i", $nick, $pointer);
 
+		$QuoteCache->put ($key, $time, $text);
+
+		$pointer = ($pointer + 1) % $QuoteCacheSize;
+		$QuotePtr->put ($nick, $pointer);
+	}
 	return (1);
 }
 
@@ -378,16 +375,43 @@ sub calculate
 		{
 			$QuoteData->{$main} = [];
 		}
-		if (defined ($QuoteCache->{$nick}))
+	}
+
+	for ($QuoteCache->keys ())
+	{
+		my $key = $_;
+		my ($nick, $num) = split (m/:/, $key);
+		my $main = get_main_nick ($nick);
+
+		my ($epoch, $text) = $QuoteCache->get ($key);
+		die unless (defined ($text));
+
+		if (!defined ($QuoteData->{$main}))
 		{
-			my @new = ();
-			push (@new, @{$QuoteData->{$main}}) if (@{$QuoteData->{$main}});
-			push (@new, @{$QuoteCache->{$nick}}) if (@{$QuoteCache->{$nick}});
+			die;
+		}
+		elsif (scalar (@{$QuoteData->{$main}}) < $QuoteCacheSize)
+		{
+			push (@{$QuoteData->{$main}}, [$epoch, $text]);
+		}
+		else
+		{
+			my $insert = -1;
+			my $min = $epoch;
 
-			@new = sort { $b->[0] <=> $a->[0] } (@new);
-			splice (@new, $QuoteCacheSize) if (scalar (@new) > $QuoteCacheSize);
+			for (my $i = 0; $i < $QuoteCacheSize; $i++)
+			{
+				if ($QuoteData->{$main}[$i][0] < $min)
+				{
+					$insert = $i;
+					$min = $QuoteData->{$main}[$i][0];
+				}
+			}
 
-			$QuoteData->{$main} = \@new;
+			if ($insert != -1)
+			{
+				$QuoteData->{$main}[$insert] = [$epoch, $text];
+			}
 		}
 	}
 }
@@ -591,9 +615,6 @@ EOF
 				my $num = scalar (@{$QuoteData->{$nick}});
 				my $rand = int (rand ($num));
 
-				require Data::Dumper;
-				print STDOUT Data::Dumper->Dump ([$rand, $QuoteData->{$nick}], ['rand', "QuoteData->{$nick}"]);
-				
 				$quote = html_escape ($QuoteData->{$nick}[$rand][1]);
 			}
 

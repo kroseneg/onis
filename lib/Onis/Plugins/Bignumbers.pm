@@ -105,9 +105,6 @@ sub calculate
 		$CalcData->{$main}{'uppercase'}    += $uppercase;
 		$CalcData->{$main}{'smiley_happy'} += $smiley_happy;
 		$CalcData->{$main}{'smiley_sad'}   += $smiley_sad;
-
-		require Data::Dumper;
-		print STDOUT Data::Dumper->Dump ([$CalcData->{$main}], ["CalcData->{$main}"]);
 	}
 }
 
