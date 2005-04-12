@@ -34,7 +34,7 @@ Sets the file to use for storable.
 
 =cut
 
-our $StorableFile = get_config ('storable_file') || 'persistency.dat';
+our $StorableFile = get_config ('storable_file') || 'var/storable.dat';
 
 if (-f $StorableFile)
 {
