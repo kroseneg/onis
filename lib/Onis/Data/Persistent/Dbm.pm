@@ -5,7 +5,7 @@ use warnings;
 
 BEGIN
 {
-	@AnyDBM_File::ISA = (qw(GDBM_File DB_File GDBM_File SDBM_File NDBM_File ODBM_File));
+	@AnyDBM_File::ISA = (qw(DB_File GDBM_File GDBM_File SDBM_File NDBM_File ODBM_File));
 }
 
 use Carp qw(carp confess);
@@ -171,9 +171,8 @@ sub keys
 	my $val;
 
 	no strict (qw(subs));
-	for (($key, $val) = $db->FIRSTKEY (); ($key, $val) = $db->NEXTKEY ($key);)
+	for (($key, $val) = $db->FIRSTKEY (); defined ($key) and defined ($val); ($key, $val) = $db->NEXTKEY ($key))
 	{
-		die unless (defined ($key));
 		next if (defined ($obj->{'cache'}{$key}));
 
 		$obj->{'cache'}{$key} = [split ($Alarm, $val)];

@@ -160,6 +160,7 @@ sub calculate
 		my $main = get_main_nick ($nick);
 
 		next unless ($main);
+		next unless (defined ($soliloquies)); # Person has not written a single line, eg. bots..
 
 		if (!defined ($InterestingNumbersData->{$main}))
 		{
