@@ -1,20 +1,20 @@
-package Onis::Data::Persistent::Gdbm;
+package Onis::Data::Persistent::Dbm;
 
 use strict;
 use warnings;
 
 use Carp qw(carp confess);
-use GDBM_File;
+use AnyDBM_File;
 
 use Onis::Config (qw(get_config));
 
 =head1 NAME
 
-Onis::Data::Persistent::Gdbm - Storage backend using GDBM_File.
+Onis::Data::Persistent::Dbm - Storage backend using AnyDBM_File.
 
 =head1 DESCRIPTION
 
-Storage backend that uses GDBM files for storing data permanently.
+Storage backend that uses DBM files for storing data permanently.
 
 =head1 CONFIGURATION OPTIONS
 
@@ -28,21 +28,20 @@ Directory in which the GDBM-files are kept.
 
 =cut
 
-our $Alarm = chr (7);
+our $DBMDirectory = get_config ('gdbm_directory') || 'var';
+$DBMDirectory =~ s#/$##g;
 
-our $GDBMDirectory = get_config ('gdbm_directory') || 'var';
-$GDBMDirectory =~ s#/$##g;
-
-if (!$GDBMDirectory or !-d $GDBMDirectory)
+if (!$DBMDirectory or !-d $DBMDirectory)
 {
 	print STDERR <<ERROR;
-The directory ``$GDBMDirectory'' does not exist or is not useable. Please
+The directory ``$DBMDirectory'' does not exist or is not useable. Please
 create it before running onis.
 ERROR
 	exit (1);
 }
 
-our %Tables = ();
+our $Alarm = chr (7);
+our %Objects = ();
 
 if ($::DEBUG & 0x0200)
 {
@@ -64,23 +63,25 @@ sub new
 	my $filename;
 	
 	my $id = $caller . ':' . $name;
+	$id =~ s#/##g;
 
 	$filename = "$GDBMDirectory/$id.gdbm";
 	
-	if (exists ($Tables{$id}))
+	if (exists ($Objects{$id}))
 	{
 		print STDERR $/, __FILE__, ": Name $name has been used in context $caller before.";
 		return (undef);
 	}
 
-	$Tables{$id} = tie (%hash, 'GDBM_File', $filename, &GDBM_WRCREAT, 0664);
+	$Objects{$id} = $obj;
 
-	$obj->{'data'} = $Tables{$id};
+	$obj->{'data'} = tie (%hash, 'AnyDBM_File', $filename, O_CREAT|O_RDWR, 0664);
 	$obj->{'key'} = $key;
 	$obj->{'fields'} = [@fields];
 	$obj->{'num_fields'} = scalar (@fields);
 	$obj->{'field_index'} = {map { $_ => $i++ } (@fields)};
 	$obj->{'id'} = $id;
+	$obj->{'cache'} = {};
 
 	if ($::DEBUG & 0x0200)
 	{
@@ -98,6 +99,7 @@ sub put
 	my $obj    = shift;
 	my $key    = shift;
 	my @fields = @_;
+	my $db = $obj->{'data'};
 
 	if ($obj->{'num_fields'} != scalar (@fields))
 	{
@@ -111,21 +113,37 @@ sub put
 		print STDOUT $/, __FILE__, ': PUT(', $obj->{'id'}, ', ', $key, ') = (' . join (', ', @fields) . ')';
 	}
 
-	$obj->{'data'}{$key} = join ($Alarm, @fields);
+	$obj->{'cache'}{$key} = [@fields];
 }
 
 sub get
 {
 	my $obj = shift;
 	my $key = shift;
+	my $val;
 	my @ret;
+	my $db = $obj->{'data'};
 
-	if (!exists ($obj->{'data'}{$key}))
+	if (!exists ($obj->{'cache'}{$key}))
+	{
+		if ($db->get ($key, $val))
+		{
+			$obj->{'cache'}{$key} = undef;
+		}
+		else
+		{
+			$obj->{'cache'}{$key} = [split ($Alarm, $val)];
+		}
+	}
+
+	if (!defined ($obj->{'cache'}{$key}))
 	{
 		return (qw());
 	}
-
-	@ret = split ($Alarm, $obj->{'data'}{$key});
+	else
+	{
+		@ret = @{$obj->{'cache'}{$key}};
+	}
 
 	if ($::DEBUG & 0x0200)
 	{
@@ -140,17 +158,19 @@ sub keys
 	my $obj = shift;
 	my @fields = @_;
 	my @field_indizes = ();
-	my @keys = keys %{$obj->{'data'}};
-	my $data = {};
+	my $db = $obj->{'data'};
+	my $key;
+	my $val;
+
+	for ($db->seq ($key, $val, R_FIRST); $db->seq ($key, $val, R_NEXT) == 0;)
+	{
+		next if (defined ($obj->{'cache'}{$key}));
+		$obj->{'cache'}{$key} = [split ($Alarm, $val)];
+	}
 
 	if (!@fields)
 	{
-		return (@keys);
-	}
-
-	for (@keys)
-	{
-		$data->{$_} = [split ($Alarm, $obj->{'data'}{$_})];
+		return (keys %{$obj->{'cache'}});
 	}
 
 	for (@fields)
@@ -169,7 +189,7 @@ sub keys
 	sub {
 		for (@field_indizes)
 		{
-			my $d = $data->{$a}[$_] cmp $data->{$b}[$_];
+			my $d = $obj->{'cache'}{$a}[$_] cmp $obj->{'cache'}{$b}[$_];
 			return ($d) if ($d);
 		}
 	}, @keys);
@@ -179,19 +199,47 @@ sub del
 {
 	my $obj = shift;
 	my $key = shift;
+	my $db = $obj->{'data'};
 
-	if (exists ($obj->{'data'}{$key}))
+	if (exists ($obj->{'cache'}{$key}))
 	{
-		delete ($obj->{'data'}{$key});
+		if (defined ($obj->{'cache'}{$key}))
+		{
+			$db->del ($key);
+			$obj->{'cache'}{$key} = undef;
+		}
+		# It's known that the key doesn't exist..
 	}
+	else
+	{
+		$db->del ($key);
+		$obj->{'cache'}{$key} = undef;
+	}
+}
+
+sub sync
+{
+	my $obj = shift;
+	my $db = $obj->{'data'};
+
+	for (keys %{$obj->{'cache'}})
+	{
+		my $key = $_;
+		my $val = join ($Alarm, @{$obj->{'cache'}{$key}});
+
+		$db->put ($key, $val);
+		delete ($obj->{'cache'}{$key});
+	}
+
+	$db->sync ();
 }
 
 END
 {
-	for (keys (%Tables))
+	for (keys (%Objects))
 	{
-		my $key = $_;
-		untie (%{$Tables{$key}});
+		my $obj = $_;
+		$obj->sync ();
 	}
 }
 
