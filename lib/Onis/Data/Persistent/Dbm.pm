@@ -3,7 +3,13 @@ package Onis::Data::Persistent::Dbm;
 use strict;
 use warnings;
 
+BEGIN
+{
+	@AnyDBM_File::ISA = (qw(GDBM_File DB_File GDBM_File SDBM_File NDBM_File ODBM_File));
+}
+
 use Carp qw(carp confess);
+use Fcntl (qw(O_RDWR O_CREAT));
 use AnyDBM_File;
 
 use Onis::Config (qw(get_config));
@@ -20,15 +26,15 @@ Storage backend that uses DBM files for storing data permanently.
 
 =over 4
 
-=item B<gdbm_directory>: I<E<lt>dirE<gt>>
+=item B<dbm_directory>: I<E<lt>dirE<gt>>
 
-Directory in which the GDBM-files are kept.
+Directory in which the DBM-files are kept.
 
 =back
 
 =cut
 
-our $DBMDirectory = get_config ('gdbm_directory') || 'var';
+our $DBMDirectory = get_config ('dbm_directory') || 'var';
 $DBMDirectory =~ s#/$##g;
 
 if (!$DBMDirectory or !-d $DBMDirectory)
@@ -65,7 +71,7 @@ sub new
 	my $id = $caller . ':' . $name;
 	$id =~ s#/##g;
 
-	$filename = "$GDBMDirectory/$id.gdbm";
+	$filename = "$DBMDirectory/$id.dbm";
 	
 	if (exists ($Objects{$id}))
 	{
@@ -73,9 +79,10 @@ sub new
 		return (undef);
 	}
 
-	$Objects{$id} = $obj;
+	no strict (qw(subs));
+	tie (%hash, 'AnyDBM_File', $filename, O_RDWR | O_CREAT, 0666) or die ("tie: $!");
 
-	$obj->{'data'} = tie (%hash, 'AnyDBM_File', $filename, O_CREAT|O_RDWR, 0664);
+	$obj->{'data'} = tied %hash;
 	$obj->{'key'} = $key;
 	$obj->{'fields'} = [@fields];
 	$obj->{'num_fields'} = scalar (@fields);
@@ -91,7 +98,8 @@ sub new
 		print STDOUT $/, $dbg;
 	}
 	
-	return (bless ($obj, $pkg));
+	$Objects{$id} = bless ($obj, $pkg);
+	return ($Objects{$id});
 }
 
 sub put
@@ -126,7 +134,8 @@ sub get
 
 	if (!exists ($obj->{'cache'}{$key}))
 	{
-		if ($db->get ($key, $val))
+		$val = $db->FETCH ($key);
+		if (!defined ($val))
 		{
 			$obj->{'cache'}{$key} = undef;
 		}
@@ -162,6 +171,7 @@ sub keys
 	my $key;
 	my $val;
 
+	no strict (qw(subs));
 	for ($db->seq ($key, $val, R_FIRST); $db->seq ($key, $val, R_NEXT) == 0;)
 	{
 		next if (defined ($obj->{'cache'}{$key}));
@@ -186,13 +196,13 @@ sub keys
 	}
 
 	return (sort
-	sub {
+	{
 		for (@field_indizes)
 		{
 			my $d = $obj->{'cache'}{$a}[$_] cmp $obj->{'cache'}{$b}[$_];
 			return ($d) if ($d);
 		}
-	}, @keys);
+	} (keys %{$obj->{'cache'}}));
 }
 
 sub del
@@ -222,9 +232,11 @@ sub sync
 	my $obj = shift;
 	my $db = $obj->{'data'};
 
-	for (keys %{$obj->{'cache'}})
+	for (CORE::keys %{$obj->{'cache'}})
 	{
 		my $key = $_;
+		next unless (defined ($obj->{'cache'}{$key}));
+
 		my $val = join ($Alarm, @{$obj->{'cache'}{$key}});
 
 		$db->put ($key, $val);
@@ -236,9 +248,10 @@ sub sync
 
 END
 {
-	for (keys (%Objects))
+	for (CORE::keys (%Objects))
 	{
-		my $obj = $_;
+		my $key = $_;
+		my $obj = $Objects{$key};
 		$obj->sync ();
 	}
 }
