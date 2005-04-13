@@ -26,19 +26,37 @@ file after everything has been done.
 
 =over 4
 
-=item B<storable_file>: I<E<lt>fileE<gt>>
+=item B<storage_file>: "I<storage.dat>";
 
-Sets the file to use for storable.
+Sets the file storable will write it's data to.
+
+=item B<storage_dir>: "I<var/>";
+
+Sets the directory in which B<storage_file> can be found.
 
 =back
 
 =cut
 
-our $StorableFile = get_config ('storable_file') || 'var/storable.dat';
+our $StorageFile = get_config ('storage_file') || 'storage.dat';
+our $StorageDir  = get_config ('storage_dir')  || 'var';
 
-if (-f $StorableFile)
+$StorageDir =~ s#/+$##;
+
+if (!-d $StorageDir)
 {
-	$TREE = retrieve ($StorableFile);
+	print STDERR $/, __FILE__, ':', <<ERROR;
+
+``storage_dir'' is set to ``$StorageDir'', but the directory doesn't exist or
+isn't a directory. Please fix it..
+
+ERROR
+	exit (1);
+}
+
+if (-f "$StorageDir/$StorageFile")
+{
+	$TREE = retrieve ("$StorageDir/$StorageFile");
 }
 
 if ($::DEBUG & 0x0200)
@@ -52,7 +70,7 @@ return (1);
 
 END
 {
-	store ($TREE, $StorableFile);
+	store ($TREE, "$StorageDir/$StorageFile");
 }
 
 =head1 AUTHOR

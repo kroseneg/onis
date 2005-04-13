@@ -43,15 +43,12 @@ sub new
 	
 	my $id = $caller . ':' . $name;
 	
-	if (exists ($TREE->{$id}))
+	if (!exists ($TREE->{$id}))
 	{
-		print STDERR $/, __FILE__, ": Name $name has been used in context $caller before.";
-		return (undef);
+		$TREE->{$id} = {};
 	}
 
-	$TREE->{$id} = {};
 	$obj->{'data'} = $TREE->{$id};
-
 	$obj->{'key'} = $key;
 	$obj->{'fields'} = [@fields];
 	$obj->{'num_fields'} = scalar (@fields);

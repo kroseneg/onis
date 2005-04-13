@@ -129,8 +129,39 @@ soliloquies_count: 5;
 # not wish onis to write and/or use such a file you can disable it here.
 #use_persistency: "true";
 
-# Sets the file which onis will dump it's state into.
-persistency_file: "persistency.data";
+
+#
+# Storage / Persistency options
+#
+
+# First, set the storage module to use. This depends on the perl-modules you
+# have installed. If you don't know, ``Dbm'' is a wise choice.
+# None:
+#   Don't use any storage module. Data is not stored at the end of each run and
+#   you will have to re-parse all logs again. This is the default.
+# Dbm:
+#   This storage-module uses DBM-files. The Perl-module ``AnyDBM_File'' is used
+#   which is part of most Perl-distributions, i.e. it should work almost
+#   anywhere.
+# Storable:
+#   Uses the ``Storable'' module to simply copy internal variables to a file.
+#   This may result in more memory usage. No benchmarks have been run yet,
+#   though..
+storage_module: "Dbm";
+
+# Sets the filename to use for storing the data. This filename is relative to
+# ``storage_dir'' (see below). This option applies to the storage module
+# ``Storable''.
+storage_file: "storage.dat";
+
+# Sets the directory in which the storage file(s) should be kept. This is used
+# by ``Dbm'' and ``Storable''.
+storage_dir: "var/";
+
+
+#
+# Output options
+#
 
 # If set to ``print'' prints out all color-codes. If set to ``ignore''
 # color-codes will not be printed. Default is to ignore colors..
