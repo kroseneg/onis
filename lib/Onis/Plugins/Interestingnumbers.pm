@@ -118,6 +118,7 @@ sub add_mode
 			{
 				$data[4]++;
 			}
+			$InterestingNumbersCache->put ($nick, @data);
 		}
 	}
 
