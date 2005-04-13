@@ -468,7 +468,7 @@ sub calculate
 				$NickData->{$main}{'lines'}[$i] += $counter[$i];
 				$sum += $counter[$i];
 			}
-			$NickData->{$main}{'lines_total'} = $sum;
+			$NickData->{$main}{'lines_total'} += $sum;
 		}
 
 		@counter = $NickWordsCounter->get ($nick);
@@ -480,7 +480,7 @@ sub calculate
 				$NickData->{$main}{'words'}[$i] += $counter[$i];
 				$sum += $counter[$i];
 			}
-			$NickData->{$main}{'words_total'} = $sum;
+			$NickData->{$main}{'words_total'} += $sum;
 		}
 
 		@counter = $NickCharsCounter->get ($nick);
@@ -492,7 +492,7 @@ sub calculate
 				$NickData->{$main}{'chars'}[$i] += $counter[$i];
 				$sum += $counter[$i];
 			}
-			$NickData->{$main}{'chars_total'} = $sum;
+			$NickData->{$main}{'chars_total'} += $sum;
 		}
 
 		if (!defined ($QuoteData->{$main}))
@@ -978,7 +978,7 @@ sub bar
 		$retval .= qq#<img src="$img" style="width: # . $width . q#px"#;
 		if ($i == 0) { $retval .= qq# class="first"#; }
 		elsif ($i == 3) { $retval .= qq# class="last"#; }
-		$retval .= ' alt="" />';
+		$retval .= qq( alt="$sum" />);
 	}
 
 	return ($retval);
