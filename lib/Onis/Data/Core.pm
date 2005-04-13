@@ -48,17 +48,12 @@ qw(
 @Onis::Data::Core::ISA = ('Exporter');
 
 our $PluginCallbacks = {};
-our $OUTPUT   = [];
+our $OutputCallbacks = [];
 our @AllNicks = ();
-our @ALLNAMES = ();
 
 our %NickToNick = ();
 our %NickToIdent = ();
 our %IdentToNick = ();
-
-our $LASTRUN_DAYS = 0;
-
-
 
 our $UNSHARP = 'MEDIUM';
 if (get_config ('unsharp'))
@@ -684,7 +679,7 @@ MESSAGE
 	
 	calculate_nicks ();
 
-	for (@$OUTPUT)
+	for (@$OutputCallbacks)
 	{
 		&$_ ();
 	}
@@ -709,9 +704,9 @@ sub register_plugin
 		return (undef);
 	}
 
-	if ($type eq 'OUTPUT')
+	if ($type eq 'OutputCallbacks')
 	{
-		push (@$OUTPUT, $sub_ref);
+		push (@$OutputCallbacks, $sub_ref);
 	}
 	else
 	{
