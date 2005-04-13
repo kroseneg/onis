@@ -34,7 +34,8 @@ the F<users.conf> defines a mapping of B<chatter> -E<gt> B<name>.
 
 =cut
 
-our $Nick2Ident   = Onis::Data::Persistent->new ('Nick2Ident', 'nick', 'ident');
+our $GeneralCounters  = Onis::Data::Persistent->new ('GeneralCounters', 'key', 'value');
+our $NickToIdentCache = Onis::Data::Persistent->new ('NickToIdentCache', 'nick', 'ident');
 our $ChatterList  = Onis::Data::Persistent->new ('ChatterList', 'chatter', 'counter');
 our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'counter');
 
@@ -46,6 +47,8 @@ qw(
 	get_total_lines nick_rename print_output register_plugin
 );
 @Onis::Data::Core::ISA = ('Exporter');
+
+our $LinesThisRun = 0;
 
 our $PluginCallbacks = {};
 our $OutputCallbacks = [];
@@ -132,14 +135,14 @@ sub store
 		$data->{'user'} = $user;
 		$data->{'ident'} = $ident;
 		
-		$Nick2Ident->put ($nick, $ident);
+		$NickToIdentCache->put ($nick, $ident);
 
 		$chatter = "$nick!$ident";
 		($counter) = $ChatterList->get ($chatter);
 		$counter ||= 0; $counter++;
 		$ChatterList->put ($chatter, $counter);
 	}
-	elsif (($ident) = $Nick2Ident->get ($nick))
+	elsif (($ident) = $NickToIdentCache->get ($nick))
 	{
 		my $chatter = "$nick!$ident";
 		my $counter;
@@ -190,8 +193,14 @@ sub store
 		}
 	}
 
-	# TODO
-	#$DATA->{'total_lines'}++;
+	{
+		my ($counter) = $GeneralCounters->get ('lines_total');
+		$counter ||= 0;
+		$counter++;
+		$GeneralCounters->put ('lines_total', $counter);
+
+		$LinesThisRun++;
+	}
 
 	if (defined ($PluginCallbacks->{$type}))
 	{
@@ -572,7 +581,7 @@ sub nick_to_ident
 	}
 	else
 	{
-		($ident) = $Nick2Ident->get ($nick);
+		($ident) = $NickToIdentCache->get ($nick);
 		$ident ||= '';
 	}
 
@@ -629,8 +638,11 @@ Returns the total number of lines parsed so far.
 
 sub get_total_lines
 {
-	# TODO
-	#return ($DATA->{'total_lines'});
+	my ($total) = $GeneralCounters->get ('lines_total');
+
+	return (qw()) unless ($total);
+	
+	return ($total, $LinesThisRun);
 }
 
 =item B<nick_rename> (I<$old_nick>, I<$new_nick>)
@@ -645,11 +657,11 @@ sub nick_rename
 	my $new_nick = shift;
 	my $ident;
 
-	($ident) = $Nick2Ident->get ($old_nick);
+	($ident) = $NickToIdentCache->get ($old_nick);
 
 	if (defined ($ident) and ($ident))
 	{
-		$Nick2Ident->put ($new_nick, $ident);
+		$NickToIdentCache->put ($new_nick, $ident);
 	}
 }
 
@@ -662,7 +674,7 @@ Print the output. Should be called only once..
 sub print_output
 {
 	# FIXME FIXME FIXME
-	if (!get_total_lines () and 0)
+	if (!get_total_lines ())
 	{
 		print STDERR <<'MESSAGE';
 
@@ -704,7 +716,7 @@ sub register_plugin
 		return (undef);
 	}
 
-	if ($type eq 'OutputCallbacks')
+	if ($type eq 'OUTPUT')
 	{
 		push (@$OutputCallbacks, $sub_ref);
 	}

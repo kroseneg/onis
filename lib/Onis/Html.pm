@@ -171,19 +171,22 @@ sub close_file
 {
 	my $runtime = time () - $time_start;
 	my $now = scalar (localtime ());
-	my $total_lines = get_total_lines () || 0;
+	my ($total_lines, $lines_this_time) = get_total_lines ();
 	my $lines_per_sec = 'infinite';
+
+	$total_lines ||= 0;
+	$lines_this_time ||= 0;
 
 	my $hp    = translate ("onis' homepage");
 	my $gen   = translate ('This page was generated <span>on %s</span> <span>with %s</span>');
-	my $stats = translate ('%u lines processed in %u seconds (%s lines per second)');
+	my $stats = translate ('%u lines processed in %u seconds (%s lines per second, %u lines total)');
 	my $by    = translate ('onis is written %s <span>by %s</span>');
 	my $link  = translate ('Get the latest version from %s');
 	
 	my $lps = translate ('infinite');
 	if ($runtime)
 	{
-		$lps = sprintf ("%.1f", ($total_lines / $runtime));
+		$lps = sprintf ("%.1f", ($lines_this_time / $runtime));
 	}
 
 	print $fh <<EOF;
@@ -196,9 +199,9 @@ EOF
 	print  $fh '    <td class="left">';
 	printf $fh ($gen, $now, "onis $::VERSION (&quot;onis not irc stats&quot;)");
 	print  $fh "<br />\n      ";
-	printf $fh ($stats, $total_lines, $runtime, $lps);
+	printf $fh ($stats, $lines_this_time, $runtime, $lps, $total_lines);
 	print  $fh qq#\n    </td>\n    <td class="right">\n      #;
-	printf $fh ($by, '2000-2004', '<a href="http://verplant.org/">Florian octo Forster</a></span> <span>&lt;octo@<span class="spam">nospam.</span>verplant.org&gt;');
+	printf $fh ($by, '2000-2005', '<a href="http://verplant.org/">Florian octo Forster</a></span> <span>&lt;octo@<span class="spam">nospam.</span>verplant.org&gt;');
 	print  $fh qq#<img id="smalllogo" src="http://images.verplant.org/onis-small.png" /># if ($PUBLIC_PAGE);
 	print  $fh "<br />\n      ";
 	printf $fh ($link, sprintf (qq#<a href="http://verplant.org/onis/">%s</a>#, $hp));
