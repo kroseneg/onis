@@ -15,28 +15,48 @@ use strict;
 use warnings;
 
 use Exporter;
-use Onis::Config qw#get_config#;
-use Onis::Users qw#host_to_username nick_to_username#;
-use Onis::Data::Persistent qw#init#;
+use Onis::Config qw(get_config);
+use Onis::Users qw(ident_to_name);
+use Onis::Data::Persistent;
+use Onis::Parser::Persistent qw(get_absolute_time);
 
-@Onis::Data::Core::EXPORT_OK = qw#all_nicks get_channel
-	nick_to_ident
-	ident_to_nick ident_to_name
-	get_main_nick
-	get_total_lines nick_rename print_output
-	register_plugin store get_print_name#;
+=head1 NAMING CONVENTION
+
+Each and every person in the IRC can be identified by a three-tupel: B<nick>,
+B<user> and B<host>, most often seen as I<nick!user@host>.
+
+The combination of B<user> and B<host> is called an B<ident> here and written
+I<user@host>. The combination of all three parts is called a B<chatter> here,
+though it's rarely used.
+
+A B<name> is the name of the "user" as defined in the F<users.conf>. Therefore,
+the F<users.conf> defines a mapping of B<chatter> -E<gt> B<name>.
+
+=cut
+
+our $GeneralCounters  = Onis::Data::Persistent->new ('GeneralCounters', 'key', 'value');
+our $NickToIdentCache = Onis::Data::Persistent->new ('NickToIdentCache', 'nick', 'ident');
+our $ChatterList  = Onis::Data::Persistent->new ('ChatterList', 'chatter', 'counter');
+our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'counter');
+
+@Onis::Data::Core::EXPORT_OK =
+qw(
+	store unsharp calculate_nicks 
+
+	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick nick_to_name
+	get_total_lines nick_rename print_output register_plugin
+);
 @Onis::Data::Core::ISA = ('Exporter');
 
-our $DATA = init ('$DATA', 'hash');
+our $LinesThisRun = 0;
 
-our $REGISTER = {};
-our $OUTPUT   = [];
-our @ALLNICKS = ();
-our @ALLNAMES = ();
-our %NICK_MAP = ();
-our %NICK2IDENT = ();
-our %IDENT2NICK = ();
-our $LASTRUN_DAYS = 0;
+our $PluginCallbacks = {};
+our $OutputCallbacks = [];
+our @AllNicks = ();
+
+our %NickToNick = ();
+our %NickToIdent = ();
+our %IdentToNick = ();
 
 our $UNSHARP = 'MEDIUM';
 if (get_config ('unsharp'))
@@ -58,30 +78,9 @@ if (get_config ('unsharp'))
 	}
 }
 
-if (!%$DATA)
-{
-		$DATA->{'idents_of_nick'} = {};
-		$DATA->{'channel'} = {};
-		$DATA->{'total_lines'} = 0;
-}
-
-if (defined ($DATA->{'lastrun'}))
-{
-	my $last = $DATA->{'lastrun'};
-	my $now  = time;
-
-	my $diff = ($now - $last) % 86400;
-
-	if ($diff > 0)
-	{
-		$DATA->{'lastrun'} = $now;
-		$LASTRUN_DAYS = $diff;
-	}
-}
-else
-{
-	$DATA->{'lastrun'} = time;
-}
+# TODO
+# - lastrun
+# - total lines
 
 my $VERSION = '$Id: Core.pm,v 1.14 2004/10/31 15:00:32 octo Exp $';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
@@ -92,406 +91,14 @@ return (1);
 
 =over 4
 
-=item I<@nicks> = B<all_nicks> ()
-
-Returns an array of all seen nicks.
-
-=cut
-
-sub all_nicks
-{
-	return (@ALLNICKS);
-}
-
-sub calculate_nicks
-{
-	my @temp = keys (%{$DATA->{'idents_of_nick'}});
-	my $nicks_of_ident = {};
-
-	print STDERR $/, __FILE__, ': Looking at ', scalar (@temp), ' nicks.' if ($::DEBUG & 0x100);
-
-	for (@temp)
-	{
-		my $this_nick = $_;
-		my $this_ident = 'unidentified';
-		my $this_total = 0;
-		my $this_max = 0;
-		my $this_ident_is_user = 0;
-
-		my @idents = keys (%{$DATA->{'idents_of_nick'}{$this_nick}});
-
-		for (@idents)
-		{
-			my $ident = $_;
-			my $num = $DATA->{'idents_of_nick'}{$this_nick}{$ident};
-			my $newnum;
-			my $ident_is_user = 1;
-			
-			if ($ident =~ m/^[^@]+@.+$/)
-			{
-				$ident_is_user = 0;
-			}
-			
-			$this_total += $num;
-
-			$newnum = int ($num * (0.9**$LASTRUN_DAYS));
-			if (!$newnum)
-			{
-				print STDERR $/, __FILE__, ": Deleting ident ``$ident'' because it's too old." if ($::DEBUG);
-				delete ($DATA->{'idents_of_nick'}{$this_nick}{$ident});
-				if (!keys %{$DATA->{'idents_of_nick'}{$this_nick}})
-				{
-					print STDERR $/, __FILE__, ": Deleting nick ``$this_nick'' because it's too old." if ($::DEBUG);
-					delete ($DATA->{'idents_of_nick'}{$this_nick});
-				}
-			}
-			elsif ($ident_is_user)
-			{
-				if (($num >= $this_max) or !$this_ident_is_user)
-				{
-					$this_max = $num;
-					$this_ident = $ident;
-					$this_ident_is_user = 1;
-				}
-			}
-			elsif ($ident !~ m/\@unidentified$/)
-			{
-				if (($num >= $this_max) and !$this_ident_is_user)
-				{
-					$this_max = $num;
-					$this_ident = $ident;
-				}
-			}
-		}
-
-		print $/, __FILE__, ": max_ident ($this_nick) = $this_ident" if ($::DEBUG & 0x100);
-
-		if ($this_ident ne 'unidentified')
-		{
-			if (!$this_ident_is_user and nick_to_username ($this_nick))
-			{
-				print STDERR $/, __FILE__, ": $this_nick!$this_ident -> " if ($::DEBUG & 0x100);
-
-				$this_ident = nick_to_username ($this_nick);
-				$this_ident_is_user = 1;
-
-				print STDERR $this_ident if ($::DEBUG & 0x100);
-			}
-			$nicks_of_ident->{$this_ident}{$this_nick} = $this_total;
-		}
-		elsif ($::DEBUG & 0x100)
-		{
-			print STDERR $/, __FILE__, ": Ignoring unidentified nick ``$this_nick''";
-		}
-	}
-
-	@temp = keys (%$nicks_of_ident);
-	
-	print STDERR $/, __FILE__, ': Looking at ', scalar (@temp), ' idents.' if ($::DEBUG & 0x100);
-
-	for (@temp)
-	{
-		my $this_ident = $_;
-		my $this_nick = '';
-		my $this_max = 0;
-		my @other_nicks = ();
-
-		my @nicks = keys (%{$nicks_of_ident->{$this_ident}});
-
-		for (@nicks)
-		{
-			my $nick = $_;
-			my $num = $nicks_of_ident->{$this_ident}{$nick};
-
-			if ($num > $this_max)
-			{
-				if ($this_nick) { push (@other_nicks, $this_nick); }
-				$this_nick = $nick;
-				$this_max = $num;
-			}
-			else
-			{
-				push (@other_nicks, $nick);
-			}
-		}
-
-		print STDERR $/, __FILE__, ": max_nick ($this_ident) = $this_nick" if ($::DEBUG & 0x100);
-
-		for (@other_nicks, $this_nick)
-		{
-			push (@ALLNICKS, $_);
-			$NICK_MAP{$_} = $this_nick;
-			$NICK2IDENT{$_} = $this_ident;
-		}
-
-		$IDENT2NICK{$this_ident} = $this_nick;
-	}
-}
-
-=item I<$channel> = B<get_channel> ()
-
-Returns the name of the channel we're generating stats for.
-
-=cut
-
-sub get_channel
-{
-	my $chan;
-	if (get_config ('channel'))
-	{
-		$chan = get_config ('channel');
-	}
-	elsif (keys (%{$DATA->{'channel'}}))
-	{
-		($chan) = sort
-		{
-			$DATA->{'channel'}{$b} <=> $DATA->{'channel'}{$a}
-		} (keys (%{$DATA->{'channel'}}));
-	}
-	else
-	{
-		$chan = '#unknown';
-	}
-
-	# Fix network-safe channel named (RFC 2811)
-	if ($chan =~ m/^![A-Z0-9]{5}.+/)
-	{
-		$chan =~ s/[A-Z0-9]{5}//;
-	}
-
-	return ($chan);
-}
-
-=item I<$main> = B<get_main_nick> (I<$nick>)
-
-Returns the main nick for I<$nick> or an empty string if the nick is unknown..
-
-=cut
-
-sub get_main_nick
-{
-	my $nick = shift;
-	if (defined ($NICK_MAP{$nick}))
-	{
-		return ($NICK_MAP{$nick});
-	}
-	else
-	{
-		return ('');
-	}
-}
-
-=item I<$ident> = B<nick_to_ident> (I<$nick>)
-
-Returns the ident for this nick or an empty string if unknown.
-
-=cut
-
-sub nick_to_ident
-{
-	my $nick = shift;
-	if (defined ($NICK2IDENT{$nick}))
-	{
-		return ($NICK2IDENT{$nick});
-	}
-	else
-	{
-		return ('');
-	}
-}
-
-=item I<$nick> = B<ident_to_nick> (I<$ident>)
-
-Returns the nick for the given ident or an empty string if unknown.
-
-=cut
-
-sub ident_to_nick
-{
-	my $ident = shift;
-
-	if (!defined ($ident)
-			or (lc ($ident) eq 'ignore')
-			or (lc ($ident) eq 'unidentified'))
-	{
-		return ('');
-	}
-	elsif (defined ($IDENT2NICK{$ident}))
-	{
-		return ($IDENT2NICK{$ident});
-	}
-	else
-	{
-		return ('');
-	}
-}
-
-=item I<$name> = B<ident_to_name> (I<$ident>)
-
-Returns the printable version of the name for the chatter identified by
-I<$ident>. Returns an empty string if the ident is not known.
-
-=cut
-
-sub ident_to_name
-{
-	my $ident = shift;
-	my $nick = ident_to_nick ($ident);
-	my $name;
-	
-	if (!$nick)
-	{
-		return ('');
-	}
-
-	$name = get_print_name ($nick);
-
-	return ($name);
-}
-
-=item I<$name> = B<get_print_name> (I<$nick>)
-
-Returns the printable version of the name for the nick I<$nick> or I<$nick> if
-unknown.
-
-=cut
-
-sub get_print_name
-{
-	my $nick = shift;
-	my $ident = '';
-	my $name = $nick;
-
-	if (defined ($NICK2IDENT{$nick}))
-	{
-		$ident = $NICK2IDENT{$nick};
-	}
-
-	if (($ident !~ m/^[^@]+@.+$/) and $ident)
-	{
-		$name = $ident;
-	}
-
-	return ($name);
-}
-
-=item I<$lines> = B<get_total_lines> ()
-
-Returns the total number of lines parsed so far.
-
-=cut
-
-sub get_total_lines
-{
-	return ($DATA->{'total_lines'});
-}
-
-=item B<nick_rename> (I<$old_nick>, I<$new_nick>)
-
-Keeps track of a nick's hostname if the nick changes.
-
-=cut
-
-sub nick_rename
-{
-	my $old_nick = shift;
-	my $new_nick = shift;
-
-	if (defined ($DATA->{'host_cache'}{$old_nick}))
-	{
-		my $host = $DATA->{'host_cache'}{$old_nick};
-		$DATA->{'host_cache'}{$new_nick} = $host;
-
-		if (!defined ($DATA->{'hosts_of_nick'}{$new_nick}{$host}))
-		{
-			$DATA->{'hosts_of_nick'}{$new_nick}{$host} = 1;
-		}
-	}
-
-	if (defined ($DATA->{'byident'}{"$old_nick\@unidentified"}))
-	{
-		# Other data may be overwritten, but I don't care here..
-		# This should be a extremely rare case..
-		$DATA->{'byident'}{"$new_nick\@unidentified"} = $DATA->{'byident'}{"$old_nick\@unidentified"};
-		delete ($DATA->{'byident'}{"$old_nick\@unidentified"});
-	}
-}
-
-=item B<print_output> ()
-
-Print the output. Should be called only once..
-
-=cut
-
-sub print_output
-{
-	if (!$DATA->{'total_lines'})
-	{
-		print STDERR <<'MESSAGE';
-
-ERROR: No data found
-
-The most common reasons for this are:
-- The logfile used was empty.
-- The ``logtype'' setting did not match the logfile.
-- The logfile did not include a date.
-
-MESSAGE
-		return;
-	}
-	
-	calculate_nicks ();
-	merge_idents ();
-
-	for (@$OUTPUT)
-	{
-		&$_ ();
-	}
-
-	delete ($DATA->{'byname'});
-}
-
-=item I<$data> = B<register_plugin> (I<$type>, I<$sub_ref>)
-
-Register a subroutine for the given type. Returns a reference to the internal
-data object. This will change soon, don't use it anymore if possible.
-
-=cut
-
-sub register_plugin
-{
-	my $type = shift;
-	my $sub_ref = shift;
-
-	$type = uc ($type);
-	if (ref ($sub_ref) ne "CODE")
-	{
-		print STDERR $/, __FILE__, ": Plugin tried to register a non-code reference. Ignoring it.";
-		return (undef);
-	}
-
-	if ($type eq 'OUTPUT')
-	{
-		push (@$OUTPUT, $sub_ref);
-	}
-	else
-	{
-		if (!defined ($REGISTER->{$type}))
-		{
-			$REGISTER->{$type} = [];
-		}
-	}
-
-	push (@{$REGISTER->{$type}}, $sub_ref);
-
-	print STDERR $/, __FILE__, ': ', scalar (caller ()), " registered for ``$type''." if ($::DEBUG & 0x800);
-
-	return ($DATA);
-}
-
 =item B<store> (I<$type>, I<$data>)
 
-Passes I<$data> (a hashref) to all plugins which registered for I<$type>. 
+Passes I<$data> (a hashref) to all plugins which registered for I<$type>. This
+is the actual workhorse when parsing the file since it will be called once for
+every line found.
+
+It will fill I<$data> with I<host>, I<user> and I<ident> if these fields are
+missing but have been seen for this nick before.
 
 =cut
 
@@ -499,7 +106,7 @@ sub store
 {
 	my $data = shift;
 	my $type = $data->{'type'};
-	my $nick;
+	my ($nick, $user, $host);
 	my $ident;
 
 	if (!defined ($type))
@@ -518,66 +125,60 @@ sub store
 
 	if (defined ($data->{'host'}))
 	{
-		my $user = host_to_username ($nick . '!' . $data->{'host'});
+		my $chatter;
+		my $counter;
 
-		if ($user)
-		{
-			$data->{'ident'} = $user;
-			$NICK2IDENT{$nick} = $user;
-		}
-		else
-		{
-			my $host = unsharp ($data->{'host'});
-			$data->{'host'} = $host;
-			$data->{'ident'} = $host;
-			$NICK2IDENT{$nick} = $host;
-		}
+		($user, $host) = unsharp ($data->{'host'});
+		$ident = "$user\@$host";
 
-		if (defined ($DATA->{'byident'}{"$nick\@unidentified"}))
-		{
-			my $ident = $data->{'ident'};
+		$data->{'host'} = $host;
+		$data->{'user'} = $user;
+		$data->{'ident'} = $ident;
+		
+		$NickToIdentCache->put ($nick, $ident);
 
-			print STDERR $/, __FILE__, ": Merging ``$nick\@unidentified'' to ``$ident''" if ($::DEBUG & 0x100);
-			
-			if (!defined ($DATA->{'byident'}{$ident}))
-			{
-				$DATA->{'byident'}{$ident} = {};
-			}
-
-			add_hash ($DATA->{'byident'}{$ident}, $DATA->{'byident'}{"$nick\@unidentified"});
-			delete ($DATA->{'byident'}{"$nick\@unidentified"});
-		}
+		$chatter = "$nick!$ident";
+		($counter) = $ChatterList->get ($chatter);
+		$counter ||= 0; $counter++;
+		$ChatterList->put ($chatter, $counter);
 	}
-	elsif (defined ($NICK2IDENT{$nick}))
+	elsif (($ident) = $NickToIdentCache->get ($nick))
 	{
-		$data->{'ident'} = $NICK2IDENT{$nick};
+		my $chatter = "$nick!$ident";
+		my $counter;
+		($user, $host) = split (m/@/, $ident);
+
+		$data->{'host'} = $host;
+		$data->{'user'} = $user;
+		$data->{'ident'} = $ident;
+
+		($counter) = $ChatterList->get ($chatter);
+		$counter ||= 0; $counter++;
+		$ChatterList->put ($chatter, $counter);
 	}
 	else
 	{
-		my $user = nick_to_username ($nick);
-
-		if ($user)
-		{
-			$data->{'ident'} = $user;
-			$NICK2IDENT{$nick} = $user;
-		}
-		else
-		{
-			$data->{'ident'} = $nick . '@unidentified';
-		}
+		$data->{'host'}  = $host  = '';
+		$data->{'user'}  = $user  = '';
+		$data->{'ident'} = $ident = '';
 	}
-
-	$ident = $data->{'ident'};
 
 	if ($::DEBUG & 0x0100)
 	{
-		print STDERR $/, __FILE__, ": id ($nick) = ", $data->{'ident'};
+		print STDERR $/, __FILE__, ": id ($nick) = ", $ident;
 	}
 
 	if (defined ($data->{'channel'}))
 	{
 		my $chan = lc ($data->{'channel'});
-		$DATA->{'channel'}{$chan}++;
+		my ($count) = $ChannelNames->get ($chan);
+		$count ||= 0; $count++;
+		$ChannelNames->put ($chan, $count);
+	}
+
+	if (!defined ($data->{'epoch'}))
+	{
+		$data->{'epoch'} = get_absolute_time ();
 	}
 
 	if ($::DEBUG & 0x400)
@@ -592,28 +193,27 @@ sub store
 		}
 	}
 
-	if (lc ($ident) eq "ignore")
 	{
-		print STDERR $/, __FILE__, ': Ignoring line from ignored user.' if ($::DEBUG & 0x0100);
-		return (0);
-	}
-	
-	$DATA->{'idents_of_nick'}{$nick}{$ident}++;
-	$DATA->{'total_lines'}++;
+		my ($counter) = $GeneralCounters->get ('lines_total');
+		$counter ||= 0;
+		$counter++;
+		$GeneralCounters->put ('lines_total', $counter);
 
-	if (defined ($REGISTER->{$type}))
+		$LinesThisRun++;
+	}
+
+	if (defined ($PluginCallbacks->{$type}))
 	{
-		for (@{$REGISTER->{$type}})
+		for (@{$PluginCallbacks->{$type}})
 		{
-			my $sub_ref = $_;
-			&$sub_ref ($data);
+			$_->($data);
 		}
 	}
 
 	return (1);
 }
 
-=item B<unsharp> (I<$ident>)
+=item (I<$user>, I<$host>) = B<unsharp> (I<$ident>)
 
 Takes an ident (i.e. a user-host-pair, e.g. I<user@host.domain.com> or
 I<login@123.123.123.123>) and "unsharps it". The unsharp version is then
@@ -625,18 +225,17 @@ What unsharp exactly does is described in the F<README>.
 
 sub unsharp
 {
-	my $user_host = shift;
+	my $ident = shift;
 
 	my $user;
 	my $host;
 	my @parts;
 	my $num_parts;
 	my $i;
-	my $retval;
 
-	print STDERR $/, __FILE__, ": Unsharp ``$user_host''" if ($::DEBUG & 0x100);
+	print STDERR $/, __FILE__, ": Unsharp ``$ident''" if ($::DEBUG & 0x100);
 	
-	($user, $host) = split (m/@/, $user_host, 2);
+	($user, $host) = split (m/@/, $ident, 2);
 
 	@parts = split (m/\./, $host);
 	$num_parts = scalar (@parts);
@@ -649,7 +248,7 @@ sub unsharp
 	
 	if ($UNSHARP eq 'NONE')
 	{
-		return ($user . '@' . $host);
+		return ($user, $host);
 	}
 	elsif ($host =~ m/^[\d\.]{7,15}$/)
 	{
@@ -688,108 +287,456 @@ sub unsharp
 	}
 
 	$host = lc (join ('.', @parts));
-	$host =~ s/\*(\.\*)+/*/;
-	$retval = $user . '@' . $host;
+	$host =~ s/\*(?:\.\*)+/*/;
 	
-	print STDERR " -> ``$retval''" if ($::DEBUG & 0x100);
-	return ($retval);
+	print STDERR " -> ``$user\@$host''" if ($::DEBUG & 0x100);
+	return ($user, $host);
 }
 
-=item B<merge_idents> ()
+=item B<calculate_nicks> ()
 
-Merges idents. Does magic, don't interfere ;)
+Iterates over all chatters found so far, trying to figure out which belong to
+the same person. This function has to be called before any calls to
+B<get_all_nicks>, B<get_main_nick>, B<get_print_name> and B<nick_to_ident>.
+
+This is normally the step after having parsed all files and before doing any
+output. After this function has been run all the other informative functions
+return actually usefull information..
+
+It does the following: First, it iterates over all chatters and splits them up
+into nicks and idents. If a (user)name is found for the ident it (the ident) is
+replaced with it (the name). 
+
+In the second step we iterate over all nicks that have been found and
+determines the most active ident for each nick. After this has been done each
+nick is associated with exactly one ident, but B<not> vice versa. 
+
+The final step is to iterate over all idents and determine the most active nick
+for each ident. After some thought you will agree that now each ident exists
+only once and so does every nick.
 
 =cut
 
-sub merge_idents
+sub calculate_nicks
 {
-	my @idents = keys (%IDENT2NICK);
-
-	for (@idents)
+	my $nicks      = {};
+	my $idents     = {};
+	my $name2nick  = {};
+	my $name2ident = {};
+	
+	for ($ChatterList->keys ())
 	{
-		my $ident = $_;
+		my $chatter = $_;
+		my ($nick, $ident) = split (m/!/, $chatter);
 		my $name = ident_to_name ($ident);
+		my ($counter) = $ChatterList->get ($chatter);
 
-		if (!defined ($DATA->{'byident'}{$ident}))
-		{
-			next;
-		}
-		
-		if (!defined ($DATA->{'byname'}{$name}))
-		{
-			$DATA->{'byname'}{$name} = {};
-		}
-
-		add_hash ($DATA->{'byname'}{$name}, $DATA->{'byident'}{$ident});
+		$nicks->{$nick}{$ident} = 0 unless (defined ($nicks->{$nick}{$ident}));
+		$nicks->{$nick}{$ident} += $counter;
 	}
-}
 
-sub add_hash
-{
-	my $dst = shift;
-	my $src = shift;
-
-	my @keys = keys (%$src);
-
-	for (@keys)
+	for (keys %$nicks)
 	{
-		my $key = $_;
-		my $val = $src->{$key};
+		my $this_nick = $_;
+		my $this_ident = 'unidentified';
+		my $this_name = '';
+		my $this_total = 0;
+		my $this_max = 0;
 
-		if (!defined ($dst->{$key}))
+		for (keys %{$nicks->{$this_nick}})
 		{
-			$dst->{$key} = $val;
-		}
-		elsif (!ref ($val))
-		{
-			if ($val =~ m/\D/)
+			my $ident = $_;
+			my $name = ident_to_name ($ident);
+			my $num = $nicks->{$this_nick}{$ident};
+			
+			$this_total += $num;
+
+			if ($name)
 			{
-				# FIXME
-				print STDERR $/, __FILE__, ": ``$key'' = ``$val''" if ($::DEBUG);
+				if (($num >= $this_max) or !$this_name)
+				{
+					$this_max = $num;
+					$this_ident = $ident;
+					$this_name = $name;
+				}
 			}
 			else
 			{
-				$dst->{$key} += $val;
+				if (($num >= $this_max) and !$this_name)
+				{
+					$this_max = $num;
+					$this_ident = $ident;
+				}
 			}
 		}
-		elsif (ref ($val) ne ref ($dst->{$key}))
+
+		print $/, __FILE__, ": max_ident ($this_nick) = $this_ident" if ($::DEBUG & 0x100);
+
+		if ($this_ident ne 'unidentified')
 		{
-			print STDERR $/, __FILE__, ": Destination and source type do not match!" if ($::DEBUG);
-		}
-		elsif (ref ($val) eq "HASH")
-		{
-			add_hash ($dst->{$key}, $val);
-		}
-		elsif (ref ($val) eq "ARRAY")
-		{
-			my $i = 0;
-			for (@$val)
+			if ($this_name)
 			{
-				my $j = $_;
-				if ($j =~ m/\D/)
-				{
-					# FIXME
-					print STDERR $/, __FILE__, ": ``", $key, '[', $i, "]'' = ``$j''" if ($::DEBUG);
-				}
-				else
-				{
-					$dst->{$key}->[$i] += $j;
-				}
-				$i++;
+				$name2nick->{$this_name}{$this_nick} = 0 unless (defined ($name2nick->{$this_name}{$this_nick}));
+				$name2nick->{$this_name}{$this_nick} += $this_total;
+
+				$name2ident->{$this_name}{$this_ident} = 0 unless (defined ($name2nick->{$this_name}{$this_ident}));
+				$name2ident->{$this_name}{$this_ident} += $this_total;
+			}
+			else
+			{
+				$idents->{$this_ident}{$this_nick} = 0 unless (defined ($idents->{$this_ident}{$this_nick}));
+				$idents->{$this_ident}{$this_nick} += $this_total;
 			}
 		}
-		else
+		elsif ($::DEBUG & 0x100)
 		{
-			my $type = ref ($val);
-			print STDERR $/, __FILE__, ": Reference type ``$type'' is not supported!", $/;
+			print STDERR $/, __FILE__, ": Ignoring unidentified nick ``$this_nick''";
 		}
 	}
+
+	for (keys %$idents)
+	{
+		my $this_ident = $_;
+		my $this_nick = '';
+		my $this_max = 0;
+		my @other_nicks = ();
+
+		my @nicks = keys (%{$idents->{$this_ident}});
+
+		for (@nicks)
+		{
+			my $nick = $_;
+			my $num = $idents->{$this_ident}{$nick};
+
+			if ($num > $this_max)
+			{
+				if ($this_nick) { push (@other_nicks, $this_nick); }
+				$this_nick = $nick;
+				$this_max = $num;
+			}
+			else
+			{
+				push (@other_nicks, $nick);
+			}
+		}
+
+		print STDERR $/, __FILE__, ": max_nick ($this_ident) = $this_nick" if ($::DEBUG & 0x100);
+
+		for (@other_nicks, $this_nick)
+		{
+			push (@AllNicks, $_);
+			$NickToNick{$_} = $this_nick;
+			$NickToIdent{$_} = $this_ident;
+		}
+
+		$IdentToNick{$this_ident} = $this_nick;
+	}
+
+	for (keys %$name2nick)
+	{
+		my $name = $_;
+		my $max_num = 0;
+		my $max_nick = '';
+		my $max_ident = '';
+
+		my @other_nicks = ();
+		my @other_idents = ();
+
+		for (keys %{$name2nick->{$name}})
+		{
+			my $nick = $_;
+			my $num = $name2nick->{$name}{$nick};
+
+			if ($num > $max_num)
+			{
+				push (@other_nicks, $max_nick) if ($max_nick);
+				$max_nick = $nick;
+				$max_num  = $num;
+			}
+			else
+			{
+				push (@other_nicks, $nick);
+			}
+		}
+
+		$max_num = 0;
+		for (keys %{$name2ident->{$name}})
+		{
+			my $ident = $_;
+			my $num = $name2ident->{$name}{$ident};
+
+			if ($num > $max_num)
+			{
+				push (@other_idents, $max_ident) if ($max_ident);
+				$max_ident = $ident;
+				$max_num  = $num;
+			}
+			else
+			{
+				push (@other_idents, $ident);
+			}
+		}
+
+		for (@other_nicks, $max_nick)
+		{
+			push (@AllNicks, $_);
+			$NickToNick{$_} = $max_nick;
+			$NickToIdent{$_} = $max_ident;
+		}
+
+		for (@other_idents, $max_ident)
+		{
+			$IdentToNick{$_} = $max_nick;
+		}
+	}
+}
+
+=item I<@nicks> = B<get_all_nicks> ()
+
+Returns an array of all seen nicks.
+
+=cut
+
+sub get_all_nicks
+{
+	return (@AllNicks);
+}
+
+=item I<$channel> = B<get_channel> ()
+
+Returns the name of the channel we're generating stats for.
+
+=cut
+
+sub get_channel
+{
+	my $chan = '#unknown'
+	;
+	if (get_config ('channel'))
+	{
+		$chan = get_config ('channel');
+	}
+	else
+	{
+		my $max = 0;
+		for ($ChannelNames->keys ())
+		{
+			my $c = $_;
+			my ($num) = $ChannelNames->get ($c);
+			if (defined ($num) and ($num > $max))
+			{
+				$max = $num;
+				$chan = $c;
+			}
+		}
+	}
+
+	# Fix network-safe channel named (RFC 2811)
+	if ($chan =~ m/^![A-Z0-9]{5}.+/)
+	{
+		$chan =~ s/[A-Z0-9]{5}//;
+	}
+
+	return ($chan);
+}
+
+=item I<$main> = B<get_main_nick> (I<$nick>)
+
+Returns the main nick for I<$nick> or an empty string if the nick is unknown..
+
+=cut
+
+sub get_main_nick
+{
+	my $nick = shift;
+	if (defined ($NickToNick{$nick}))
+	{
+		return ($NickToNick{$nick});
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item I<$ident> = B<nick_to_ident> (I<$nick>)
+
+Returns the ident for this nick or an empty string if unknown. Before
+B<calculate_nicks> is run it will use the database to find the most recent
+mapping. After B<calculate_nicks> is run the calculated mapping will be used.
+
+=cut
+
+sub nick_to_ident
+{
+	my $nick = shift;
+	my $ident = '';
+
+	if (%NickToIdent)
+	{
+		if (defined ($NickToIdent{$nick}))
+		{
+			$ident = $NickToIdent{$nick};
+		}
+	}
+	else
+	{
+		($ident) = $NickToIdentCache->get ($nick);
+		$ident ||= '';
+	}
+
+	return ($ident);
+}
+
+=item I<$nick> = B<ident_to_nick> (I<$ident>)
+
+Returns the nick for the given ident or an empty string if unknown.
+
+=cut
+
+sub ident_to_nick
+{
+	my $ident = shift;
+
+	if (defined ($IdentToNick{$ident}))
+	{
+		return ($IdentToNick{$ident});
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item I<$name> = B<nick_to_name> (I<$nick>)
+
+Return the name associated with I<$nick>. This function uses B<ident_to_name>
+(see L<Onis::Users>).
+
+=cut
+
+sub nick_to_name
+{
+	my $nick = shift;
+	my $ident = nick_to_ident ($nick);
+
+	if ($ident)
+	{
+		return (ident_to_name ($ident));
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item I<$lines> = B<get_total_lines> ()
+
+Returns the total number of lines parsed so far.
+
+=cut
+
+sub get_total_lines
+{
+	my ($total) = $GeneralCounters->get ('lines_total');
+
+	return (qw()) unless ($total);
+	
+	return ($total, $LinesThisRun);
+}
+
+=item B<nick_rename> (I<$old_nick>, I<$new_nick>)
+
+Keeps track of a nick's hostname if the nick changes.
+
+=cut
+
+sub nick_rename
+{
+	my $old_nick = shift;
+	my $new_nick = shift;
+	my $ident;
+
+	($ident) = $NickToIdentCache->get ($old_nick);
+
+	if (defined ($ident) and ($ident))
+	{
+		$NickToIdentCache->put ($new_nick, $ident);
+	}
+}
+
+=item B<print_output> ()
+
+Print the output. Should be called only once..
+
+=cut
+
+sub print_output
+{
+	# FIXME FIXME FIXME
+	if (!get_total_lines ())
+	{
+		print STDERR <<'MESSAGE';
+
+ERROR: No data found
+
+The most common reasons for this are:
+- The logfile used was empty.
+- The ``logtype'' setting did not match the logfile.
+- The logfile did not include a date.
+
+MESSAGE
+		return;
+	}
+	
+	calculate_nicks ();
+
+	for (@$OutputCallbacks)
+	{
+		&$_ ();
+	}
+}
+
+=item I<$data> = B<register_plugin> (I<$type>, I<$sub_ref>)
+
+Register a subroutine for the given type. Returns a reference to the internal
+data object. This will change soon, don't use it anymore if possible.
+
+=cut
+
+sub register_plugin
+{
+	my $type = shift;
+	my $sub_ref = shift;
+
+	$type = uc ($type);
+	if (ref ($sub_ref) ne "CODE")
+	{
+		print STDERR $/, __FILE__, ": Plugin tried to register a non-code reference. Ignoring it.";
+		return (undef);
+	}
+
+	if ($type eq 'OUTPUT')
+	{
+		push (@$OutputCallbacks, $sub_ref);
+	}
+	else
+	{
+		if (!defined ($PluginCallbacks->{$type}))
+		{
+			$PluginCallbacks->{$type} = [];
+		}
+	}
+
+	push (@{$PluginCallbacks->{$type}}, $sub_ref);
+
+	print STDERR $/, __FILE__, ': ', scalar (caller ()), " registered for ``$type''." if ($::DEBUG & 0x800);
 }
 
 =back
 
 =head1 AUTHOR
 
-  Florian octo Forster E<lt>octo at verplant.orgE<gt>
+Florian octo Forster E<lt>octo at verplant.orgE<gt>
 
 =cut

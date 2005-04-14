@@ -1,0 +1,354 @@
+a
+{
+	color: navy;
+	background-color: transparent;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+a:hover
+{
+	text-decoration: underline;
+}
+
+a:visited
+{
+	font-weight: normal;
+}
+
+body
+{
+	background-color: white;
+	background-image: url(stripes.png);
+	color: black;
+}
+
+div.msie_hack
+{
+	text-align: center;
+}
+
+em
+{
+	font-style: normal;
+	font-weight: bold;
+}
+
+h1, h2
+{
+	text-align: center;
+}
+
+img#smalllogo
+{
+	border: none;
+	float: right;
+	margin: 1px;
+}
+
+p
+{
+	text-align: center;
+}
+
+span.small
+{
+	font-size: smaller;
+}
+
+table
+{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+table.big_ranking img
+{
+	border-left: none;
+	border-right: none;
+	height: 10px;
+}
+
+table.big_ranking td.image img,
+table.userdetails td.image img
+{
+	width: auto;
+	height: auto;
+	width: 50px;
+	height: 50px;
+	display: block;
+	border: 1px solid gray;
+}
+
+table.conversations
+{
+	border-collapse: collapse;
+}
+
+table.conversations td
+{
+	width: 50%;
+}
+
+table.conversations td.bar img
+{
+	display: inline;
+	height: 4px;
+}
+
+table.conversations td.left
+{
+	text-align: right;
+}
+
+table.conversations td
+{
+	border-top: 2px solid white;
+}
+
+table.conversations td.right
+{
+	text-align: left;
+}
+
+table.copy
+{
+	width: 100%;
+	border-top: 1px solid black;
+}
+
+table.copy span.spam
+{
+	display: none;
+}
+
+table.copy td
+{
+	background-color: transparent;
+	color: gray;
+	font-size: small;
+	width: 50%;
+}
+
+table.copy td.right
+{
+	text-align: right;
+}
+
+table.hours tr.bars
+{
+	height: 150px;
+}
+
+table.hours tr.bars td.bar
+{
+	color: black;
+	background-color: transparent;
+
+	width: 4.1666%;
+}
+
+table.hours tr.bars td.bar img
+{
+	width: 15px;
+}
+
+table.legend
+{
+	width: 500px;
+}
+
+table.legend img
+{
+	display: inline;
+	width: 50px;
+	height: 15px;
+	border: 1px solid gray;
+}
+
+table.legend td
+{
+	background-color: transparent;
+	color: black;
+	text-align: center;
+	width: 125px;
+}
+
+table.plugin
+{
+	width: 500px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+}
+
+table.plugin.userdetails
+{
+	width: auto;
+	border-collapse: collapse;
+}
+
+table.userdetails td.convpartners,
+table.userdetails td.counters,
+table.userdetails td.numbers
+{
+	vertical-align: top;
+}
+
+table.userdetails td.convpartners table
+{
+	margin-right: auto;
+	margin-left: 0px;
+}
+
+table.userdetails td.convpartners td.bar img
+{
+	height: 4px;
+}
+
+table.userdetails table.hours tr.bars
+{
+	height: 75px;
+}
+
+table.userdetails table.hours tr.bars td.bar img
+{
+	width: 3px;
+}
+
+table.userdetails td.image
+{
+	vertical-align: top;
+	padding: 1ex;
+}
+
+table.userdetails th.nick
+{
+	border-top: 2px solid white;
+	border-bottom: 2px solid white;
+}
+
+table.weekdays td
+{
+	/* 14.2857 = 100/7 */
+	width: 14.28%;
+}
+
+table.weekdays tr.bars
+{
+	height: 100px;
+}
+
+table.weekdays tr.bars td
+{
+	color: black;
+	background-color: transparent;
+
+	/* 3.5714 = 100/28 */
+	width: 3.57%;
+}
+
+table.weekdays tr.bars td img
+{
+	width: 10px;
+}
+
+td
+{
+	background-color: #f8f8f8;
+	color: black;
+	text-align: left;
+}
+
+td.bar
+{
+	font-size: smaller;
+}
+
+td.bar img
+{
+	border-top: 1px solid gray;
+	border-bottom: 1px solid gray;
+}
+
+td.bar img.first
+{
+	border-left: 1px solid gray;
+}
+
+td.bar img.last
+{
+	border-right: 1px solid gray;
+}
+
+td.bar.vertical
+{
+	vertical-align: bottom;
+	padding: 0px;
+	border: none;
+}
+
+td.bar.vertical img
+{
+	display: block;
+
+	margin-top: 0px;
+	margin-right: auto;
+	margin-bottom: 0px;
+	margin-left: auto;
+
+	border-top: none;
+	border-right: 1px solid gray;
+	border-bottom: none;
+	border-left: 1px solid gray;
+}
+
+td.bar.vertical img.first
+{
+	border-top: 1px solid gray;
+}
+
+td.bar.vertical img.last
+{
+	border-bottom: 1px solid gray;
+}
+
+td.counter
+{
+	font-size: 60%;
+	text-align: center;
+
+	color: gray;
+	background-color: transparent;
+
+	border: 1px solid silver;
+}
+
+td.numeration
+{
+	font-weight: bold;
+	font-size: 80%;
+	text-align: center;
+
+	color: black;
+	background-color: silver;
+}
+
+td.invis
+{
+	background-color: transparent;
+	color: black;
+}
+
+th
+{
+	background-color: silver;
+	color: black;
+	text-align: center;
+	font-weight: bold;
+	font-style: italic;
+}
+
+tr.hour_row td
+{
+	border: 1px solid gray;
+}

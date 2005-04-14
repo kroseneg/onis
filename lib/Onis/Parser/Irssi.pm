@@ -95,7 +95,7 @@ sub parse
 
 	# 07:03 *** |Kodachi| [~kodachi@pD9505323.dip.t-dialin.net] has joined #schlegl
 	# 14:08 *** t_sunrise [t_sunrise@pD9E53413.dip.t-dialin.net] has joined #schlegl
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) \[([^\]]+)\] has joined ([#!+&]\S+)/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) \[([^\]]+)\] has joined ([#!+&]\S+)/)
 	{
 		my $data =
 		{
@@ -111,7 +111,7 @@ sub parse
 
 	# 15:52 *** mode/#schlegl [+o martin-] by Sajdan
 	# 11:25 *** mode/#schlegl [+ooo Impy_ kyreon Sajdan] by octo
-	elsif ($line =~ m/^(\d\d):(\d\d) ... mode\/([#!+&]\S+) \[([^\]]+)\] by (\S+)/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* mode\/([#!+&]\S+) \[([^\]]+)\] by (\S+)/)
 	{
 		my $data =
 		{
@@ -127,14 +127,14 @@ sub parse
 	
 	# 15:08 *** stoffi- is now known as foobar-
 	# 13:48 *** Lucky-17 is now known as Lucky17
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) is now known as (\S+)/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) is now known as (\S+)/)
 	{
 		nick_rename ($1, $2);
 	}
 
 	# 14:00 *** kyreon changed the topic of #schlegl to: 100 Jahre Ball... kommt alle :)
 	# 15:03 *** martin- changed the topic of #schlegl to: http://martin.ipv6.cc/austellung.txt / Hat jmd Interesse?
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) changed the topic of ([#!+&]\S+) to: (.+)/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) changed the topic of ([#!+&]\S+) to: (.+)/)
 	{
 		my $data =
 		{
@@ -150,7 +150,7 @@ sub parse
 
 	# 23:31 *** |Kodachi| [~kodachi@pD9505104.dip.t-dialin.net] has quit [sleepinf]
 	# 00:18 *** miracle- [~SandraNeu@pD9E531C9.dip.t-dialin.net] has quit [Ping timeout]
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) \[([^\]]+)\] has quit \[([^\]]*)\]/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) \[([^\]]+)\] has quit \[([^\]]*)\]/)
 	{
 		my $data =
 		{
@@ -166,7 +166,7 @@ sub parse
 
 	# 15:08 *** t_sunrise [t_sunrise@p508472D6.dip.t-dialin.net] has left #schlegl [t_sunrise]
 	# 12:59 *** impy__ [impy@huhu.franken.de] has left #schlegl [impy__]
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) \[([^\]]+)\] has left ([#!+&]\S+) \[([^\]]*)\]/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) \[([^\]]+)\] has left ([#!+&]\S+) \[([^\]]*)\]/)
 	{
 		my $data =
 		{
@@ -183,7 +183,7 @@ sub parse
 	
 	# 21:54 *** stoffi- was kicked from #schlegl by martin- [bye]
 	# 12:37 *** miracle- was kicked from #schlegl by kyreon [kyreon]
-	elsif ($line =~ m/^(\d\d):(\d\d) ... (\S+) was kicked from ([#!+&]\S+) by (\S+) \[([^\]]+)\]/)
+	elsif ($line =~ m/^(\d\d):(\d\d) \*\*\* (\S+) was kicked from ([#!+&]\S+) by (\S+) \[([^\]]+)\]/)
 	{
 		my $data =
 		{
