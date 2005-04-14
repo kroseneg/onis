@@ -5,7 +5,7 @@ use warnings;
 
 BEGIN
 {
-	@AnyDBM_File::ISA = (qw(DB_File GDBM_File GDBM_File SDBM_File NDBM_File ODBM_File));
+	@AnyDBM_File::ISA = (qw(DB_File GDBM_File SDBM_File NDBM_File ODBM_File));
 }
 
 use Carp qw(carp confess);
