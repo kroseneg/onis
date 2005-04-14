@@ -9,7 +9,7 @@ use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
 use Onis::Data::Persistent ();
-use Onis::Plugins::Core (qw(get_core_nick_counters));
+use Onis::Plugins::Core (qw(get_core_nick_counters nick_is_in_main_table));
 
 @Onis::Plugins::Bignumbers::EXPORT_OK = (qw(get_bignumbers));
 @Onis::Plugins::Bignumbers::ISA = ('Exporter');
@@ -387,6 +387,7 @@ sub sort_by_field
 		defined ($CalcData->{$_}{'lines'})
 			and ($CalcData->{$_}{'lines'} != 0)
 			and defined ($CalcData->{$_}{$field})
+			and (nick_is_in_main_table ($_) > 0)
 	}
 	(keys (%$CalcData));
 	

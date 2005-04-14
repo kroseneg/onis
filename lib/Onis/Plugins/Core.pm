@@ -17,14 +17,14 @@ complicated plugin so far.
 
 =cut
 
-use Onis::Config qw/get_config/;
-use Onis::Html qw/html_escape get_filehandle/;
-use Onis::Language qw/translate/;
+use Onis::Config (qw(get_config));
+use Onis::Html (qw(html_escape get_filehandle));
+use Onis::Language (qw(translate));
 use Onis::Users (qw(get_realname get_link get_image ident_to_name));
-use Onis::Data::Core qw#get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin#;
-use Onis::Data::Persistent;
+use Onis::Data::Core (qw(get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin));
+use Onis::Data::Persistent ();
 
-@Onis::Plugins::Core::EXPORT_OK = (qw(get_core_nick_counters get_sorted_nicklist));
+@Onis::Plugins::Core::EXPORT_OK = (qw(get_core_nick_counters get_sorted_nicklist nick_is_in_main_table));
 @Onis::Plugins::Core::ISA = ('Exporter');
 
 our $NickLinesCounter = Onis::Data::Persistent->new ('NickLinesCounter', 'nick',
@@ -52,6 +52,8 @@ our $QuotePtr = Onis::Data::Persistent->new ('QuotePtr', 'nick', qw(pointer));
 our $QuoteData = {};  # Is generated before output. Nicks are merged according to Data::Core.
 our $NickData = {};  # Same as above, but for nicks rather than quotes.
 our $SortedNicklist = [];
+
+our $NicksInMainTable = {};
 
 our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 our $QuoteCacheSize = 10;
@@ -735,6 +737,8 @@ EOF
 		# our table..
 		if ($linescount <= $LongLines)
 		{
+			$NicksInMainTable->{$nick} = $linescount;
+			
 			my $quote = translate ('-- no quote available --');
 
 			if (@{$QuoteData->{$nick}})
@@ -1029,6 +1033,20 @@ config-file.
 sub get_sorted_nicklist
 {
 	return ($SortedNicklist);
+}
+
+=item B<nick_is_in_main_table> (I<$nick>)
+
+Returns the position of the nick in the main table or zero if it is not in the
+main table.
+
+=cut
+
+sub nick_is_in_main_table
+{
+	my $nick = shift;
+
+	return (defined ($NicksInMainTable->{$nick}) ? $NicksInMainTable->{$nick} : 0);
 }
 
 =back
