@@ -55,11 +55,13 @@ sub add
 	my $day   = (localtime ($time))[6];
 	my $index = ($day * 4) + $hour;
 
-	my @data = $WeekdayCache->get ($nick) || (qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0));
+	my @data = $WeekdayCache->get ($nick);
+	@data = (qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)) unless (@data);
 	$data[$index] += $chars;
 	$WeekdayCache->put ($nick, @data);
 	
-	@data = $WeekdayCache->get ('<TOTAL>') || (qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0));
+	@data = $WeekdayCache->get ('<TOTAL>');
+	@data = (qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)) unless (@data);
 	$data[$index] += $chars;
 	$WeekdayCache->put ('<TOTAL>', @data);
 }
@@ -119,6 +121,7 @@ sub output
 	my $fh = get_filehandle ();
 	
 	my $max = 0;
+	my $total = 0;
 	my $bar_factor = 0;
 
 	for (@order)
@@ -126,6 +129,7 @@ sub output
 		my ($num, $abbr, $name) = @$_;
 		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
 
+		$total += $sum;
 		$max = $sum if ($max < $sum);
 	}
 	
@@ -135,18 +139,28 @@ sub output
 	for (@order)
 	{
 		my ($num, $abbr, $name) = @$_;
-		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
-
-		print $fh qq#    <td class="bar $abbr">$sum<br />\n      #;
-		for (my $i = 0; $i < 4; $i++)
+		print $fh qq#    <td class="bar vertical $abbr">#;
+		for (my $i = 3; $i >= 0; $i--)
 		{
 			my $num = $data->{$abbr}[$i];
-			my $height = int (0.5 + $num * $bar_factor) || 1;
+			my $height = sprintf ("%.2f", (95 * $num / $max));
 			my $img = $VImages[$i];
-			
-			print $fh qq(<img src="$img" alt="" style="height: ${height}px;" />);
+			my $class = '';
+
+			$class = q( class="first") if ($i == 3);
+			$class = q( class="last") if ($i == 0);
+
+			print $fh qq(<img src="$img" alt="" style="height: ${height}%;"$class />);
 		}
-		print $fh "\n    </td>\n";
+		print $fh "</td>\n";
+	}
+	print $fh qq(  </tr>\n  <tr class="counter">\n);
+	for (@order)
+	{
+		my ($num, $abbr, $name) = @$_;
+		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
+		my $pct = sprintf ("%.1f", (100 * $sum / $total));
+		print $fh qq(    <td class="counter $abbr">$pct%</td>\n);
 	}
 	print $fh qq(  </tr>\n  <tr class="numeration">\n);
 	for (@order)
