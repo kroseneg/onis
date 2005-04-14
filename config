@@ -40,6 +40,7 @@ overwrite: "false";
 
 # Load these plugins. These are all available plugins as of now, but this
 # is a development release. The missing one(s) will be back..
+plugin: "Weekdays";
 plugin: "Conversations";
 plugin: "BigNumbers";
 plugin: "Words";
