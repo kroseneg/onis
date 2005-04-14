@@ -160,9 +160,9 @@ sub output
 		$nick_data->{$nick}{'bignumbers'} = get_bignumbers ($nick);
 		$nick_data->{$nick}{'interestingnumbers'} = get_interestingnumbers ($nick);
 		
-		for (my $i = 0; $i < 12; $i++)
+		for (my $i = 0; $i < 24; $i++)
 		{
-			$num = $nick_data->{$nick}{'chars'}[2 * $i] + $nick_data->{$nick}{'chars'}[(2 * $i) + 1];
+			$num = $nick_data->{$nick}{'chars'}[$i];
 			$max_time = $num if ($max_time < $num);
 		}
 
@@ -315,32 +315,30 @@ sub output
 		
 		if (defined ($ptr->{'chars'}))
 		{
-			print $fh qq#      <table class="hours_of_day">\n        <tr>\n#;
+			print $fh qq#      <table class="hours">\n        <tr class="bars">\n#;
 			
-			for (my $i = 0; $i < 12; $i++)
+			for (my $i = 0; $i < 24; $i++)
 			{
-				my $hour = 2 * $i;
 				$num = 0;
 
-				my $img = $V_IMAGES[int ($hour / 6)];
+				my $img = $V_IMAGES[int ($i / 6)];
 				my $height;
 
-				$num  = $ptr->{'chars'}[$hour];
-				$num += $ptr->{'chars'}[$hour + 1];
+				$num  = $ptr->{'chars'}[$i];
 
-				$height = int (0.5 + ($time_factor * $num)) || 1;
+				$height = sprintf ("%.2f", 95 * $num / $max_time);
 
-				print $fh qq#          <td><img src="$img" alt="$num chars" #,
-				qq#style="height: ${height}px;" /></td>\n#;
+				print $fh qq#          <td class="bar vertical"><img src="$img" alt="$num chars" #,
+				qq#class="first last" style="height: $height\%;" /></td>\n#;
 			}
 
 			print $fh <<EOF;
         </tr>
-	<tr class="hour_row">
-	  <td colspan="3">0-5</td>
-	  <td colspan="3">6-11</td>
-	  <td colspan="3">12-17</td>
-	  <td colspan="3">18-23</td>
+	<tr class="numeration">
+	  <td colspan="6" class="numeration">0-5</td>
+	  <td colspan="6" class="numeration">6-11</td>
+	  <td colspan="6" class="numeration">12-17</td>
+	  <td colspan="6" class="numeration">18-23</td>
 	</tr>
       </table>
 EOF

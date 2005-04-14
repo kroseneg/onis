@@ -127,10 +127,12 @@ sub output
 	for (@order)
 	{
 		my ($num, $abbr, $name) = @$_;
-		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
 
-		$total += $sum;
-		$max = $sum if ($max < $sum);
+		for (my $i = 0; $i < 4; $i++)
+		{
+			$max = $data->{$abbr}[$i] if ($max < $data->{$abbr}[$i]);
+			$total += $data->{$abbr}[$i];
+		}
 	}
 	
 	$bar_factor = $BarHeight / $max;
@@ -139,20 +141,15 @@ sub output
 	for (@order)
 	{
 		my ($num, $abbr, $name) = @$_;
-		print $fh qq#    <td class="bar vertical $abbr">#;
-		for (my $i = 3; $i >= 0; $i--)
+		for (my $i = 0; $i < 4; $i++)
 		{
 			my $num = $data->{$abbr}[$i];
 			my $height = sprintf ("%.2f", (95 * $num / $max));
 			my $img = $VImages[$i];
-			my $class = '';
 
-			$class = q( class="first") if ($i == 3);
-			$class = q( class="last") if ($i == 0);
-
-			print $fh qq(<img src="$img" alt="" style="height: ${height}%;"$class />);
+			print $fh qq#    <td class="bar vertical $abbr">#,
+			qq(<img src="$img" alt="" class="first last" style="height: ${height}%;" /></td>\n);
 		}
-		print $fh "</td>\n";
 	}
 	print $fh qq(  </tr>\n  <tr class="counter">\n);
 	for (@order)
@@ -160,13 +157,13 @@ sub output
 		my ($num, $abbr, $name) = @$_;
 		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
 		my $pct = sprintf ("%.1f", (100 * $sum / $total));
-		print $fh qq(    <td class="counter $abbr">$pct%</td>\n);
+		print $fh qq(    <td colspan="4" class="counter $abbr">$pct%</td>\n);
 	}
 	print $fh qq(  </tr>\n  <tr class="numeration">\n);
 	for (@order)
 	{
 		my ($num, $abbr, $name) = @$_;
-		print $fh qq(    <td class="numeration $abbr">$name</td>\n);
+		print $fh qq(    <td colspan="4" class="numeration $abbr">$name</td>\n);
 	}
 	print $fh "  </tr>\n</table>\n\n";
 }

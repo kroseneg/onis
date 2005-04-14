@@ -591,14 +591,14 @@ sub activetimes
 
 	my $header = translate ('When do we actually talk here?');
 	print $fh "<h2>$header</h2>\n",
-	qq#<table class="hours_of_day">\n#,
-	qq#  <tr>\n#;
+	qq#<table class="hours">\n#,
+	qq#  <tr class="bars">\n#;
 
 # this for circles through the four colors. Each color represents six hours.
 # (4 * 6 hours = 24 hours)
 	for (my $i = 0; $i <= 3; $i++)
 	{
-		for (my $j = 0; $j <= 5; $j++)
+		for (my $j = 0; $j < 6; $j++)
 		{
 			my $hour = (($i * 6) + $j);
 			if (!defined ($data[$hour]))
@@ -606,19 +606,22 @@ sub activetimes
 				$data[$hour] = 0;
 			}
 
-			my $percent = 100 * ($data[$hour] / $total);
-			my $height = int ($data[$hour] * $factor) + 1;
-			my $img_url = $img_urls[$i];
+			my $height  = sprintf ("%.2f", 95 * $data[$hour] / $max);
+			my $img = $img_urls[$i];
 			
-			print $fh '    <td>', sprintf ("%2.1f", $percent),
-			qq#%<br /><img src="$img_url" style="height: $height#,
-			qq#px;" alt="" /></td>\n#;
+			print $fh qq#    <td class="bar vertical"><img src="$img" class="first last" style="height: $height\%;" alt="" /></td>\n#;
 		}
+	}
+	print $fh qq#  </tr>\n  <tr class="counter">\n#;
+	for (my $i = 0; $i < 24; $i++)
+	{
+		my $percent = sprintf ("%.1f", 100 * $data[$i] / $total);
+		print $fh qq#    <td class="counter">$percent\%</td>\n#;
 	}
 
 	print $fh "  </tr>\n",
-	qq#  <tr class="hour_row">\n#;
-	print $fh map { "    <td>$_</td>\n" } (0 .. 23);
+	qq#  <tr class="numeration">\n#;
+	print $fh map { qq#    <td class="numeration">$_</td>\n# } (0 .. 23);
 	print $fh "  </tr>\n",
 	"</table>\n\n";
 }
