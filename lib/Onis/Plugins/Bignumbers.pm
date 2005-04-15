@@ -11,6 +11,19 @@ use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
 use Onis::Data::Persistent ();
 use Onis::Plugins::Core (qw(get_core_nick_counters nick_is_in_main_table));
 
+=head1 NAME
+
+Onis::Plugins::Bignumbers - Information about nick specific channel
+characteristics
+
+=head1 DESCRIPTION
+
+This plugins detects questions, yelled text (all uppercase), (happy and sad)
+smileys, characters and words per line. It stores this information for each
+nick and prints a table containing the most significant nicks in each category.
+
+=cut
+
 @Onis::Plugins::Bignumbers::EXPORT_OK = (qw(get_bignumbers));
 @Onis::Plugins::Bignumbers::ISA = ('Exporter');
 
@@ -399,6 +412,26 @@ sub sort_by_field
 	return (@retval);
 }
 
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_bignumbers> (I<$nick>)
+
+Returns all the data that was used to calculate the bignumbers-data for this
+nick. It's a hash-ref with the following fields. Each field holds a counter
+that counts the total occurences of that "event".
+
+  lines
+  words
+  chars
+  questions
+  uppercase
+  smiley_happy
+  smiley_sad
+
+=cut
+
 sub get_bignumbers
 {
 	my $nick = shift;
@@ -410,3 +443,11 @@ sub get_bignumbers
 
 	return ($CalcData->{$nick});
 }
+
+=back
+
+=head1 AUTHOR
+
+Florian Forster E<lt>octo at verplant.orgE<gt>
+
+=cut

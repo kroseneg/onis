@@ -12,6 +12,17 @@ use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident nick_to_name
 use Onis::Users (qw(ident_to_name));
 use Onis::Data::Persistent;
 
+=head1 NAME
+
+Onis::Plugins::Conversations - Who talks with who
+
+=head1 DESCRIPTION
+
+This plugins tries to recignise conversations and counts the amount that people
+talk to each other.
+
+=cut
+
 @Onis::Plugins::Conversations::EXPORT_OK = (qw(get_conversations));
 @Onis::Plugins::Conversations::ISA = ('Exporter');
 
@@ -249,6 +260,33 @@ EOF
 	print $fh "</table>\n\n";
 }
 
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_conversations> (I<$nick>)
+
+Returns a hashref to the conversations this nick was involved with. The layout
+is the following. I<$other> is the nick of the person I<$nick> chattet with.
+The arrays hold the number of characters written by the nick used as the key.
+The first field contains the characters for the hours 0-5, the second field
+holds 6-11 and so on.
+
+  {
+    $other =>
+    {
+      total => 0,
+      nicks =>
+      {
+        $nick  => [0, 0, 0, 0],
+        $other => [0, 0, 0, 0]
+      }
+    },
+    ...
+  }
+
+=cut
+
 sub get_conversations
 {
 	my $nick = shift;
@@ -262,3 +300,11 @@ sub get_conversations
 		return ($ConversationData->{$nick});
 	}
 }
+
+=back
+
+=head1 AUTHOR
+
+Florian octo Forster, E<lt>octo at verplant.orgE<gt>
+
+=cut

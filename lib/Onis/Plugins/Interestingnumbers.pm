@@ -11,6 +11,17 @@ use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(register_plugin get_main_nick nick_to_name));
 use Onis::Data::Persistent;
 
+=head1 NAME
+
+Onis::Plugins::Interestingnumbers
+
+=head1 DESCRIPTION
+
+Counts actions, joins, given and received kicks and ops and soliloquies for
+each nick and prints the most significant nicks in a table.
+
+=cut
+
 @Onis::Plugins::Interestingnumbers::EXPORT_OK = (qw(get_interestingnumbers));
 @Onis::Plugins::Interestingnumbers::ISA = ('Exporter');
 
@@ -406,6 +417,25 @@ sub sort_by_field
 	return (@retval);
 }
 
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_interestingnumbers> (I<$nick>)
+
+Returns a hash-ref with the interesting numbers (counters) for this nick. The
+hash-ref has the following fields:
+
+  actions
+  joins
+  kick_given
+  kick_received
+  op_given
+  op_taken
+  soliloquies
+
+=cut
+
 sub get_interestingnumbers
 {
 	my $nick = shift;
@@ -417,3 +447,11 @@ sub get_interestingnumbers
 
 	return ($InterestingNumbersData->{$nick});
 }
+
+=back
+
+=head1 AUTHOR
+
+Florian octo Forster, E<lt>octo at verplant.orgE<gt>
+
+=cut
