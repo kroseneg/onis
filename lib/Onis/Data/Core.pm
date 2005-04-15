@@ -44,7 +44,7 @@ qw(
 	store unsharp calculate_nicks 
 
 	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick nick_to_name
-	get_total_lines nick_rename print_output register_plugin
+	get_total_lines get_most_recent_time nick_rename print_output register_plugin
 );
 @Onis::Data::Core::ISA = ('Exporter');
 
@@ -198,6 +198,11 @@ sub store
 		$counter ||= 0;
 		$counter++;
 		$GeneralCounters->put ('lines_total', $counter);
+
+		my ($time) = $GeneralCounters->get ('most_recent_time');
+		$time ||= 0;
+		$time = $data->{'epoch'} if ($time < $data->{'epoch'});
+		$GeneralCounters->put ('most_recent_time', $time);
 
 		$LinesThisRun++;
 	}
@@ -643,6 +648,20 @@ sub get_total_lines
 	return (qw()) unless ($total);
 	
 	return ($total, $LinesThisRun);
+}
+
+=item I<$epoch> = B<get_most_recent_time> ()
+
+Returns the epoch of the most recent line received from the parser.
+
+=cut
+
+sub get_most_recent_time
+{
+	my ($time) = $GeneralCounters->get ('most_recent_time');
+	$time ||= 0;
+
+	return ($time);
 }
 
 =item B<nick_rename> (I<$old_nick>, I<$new_nick>)

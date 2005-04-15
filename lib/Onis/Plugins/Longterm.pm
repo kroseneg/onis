@@ -1,4 +1,4 @@
-package Onis::Plugins::Weekdays;
+package Onis::Plugins::Longterm;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(register_plugin get_main_nick nick_to_ident nick_to_name));
+use Onis::Data::Core (qw(register_plugin get_main_nick get_most_recent_time nick_to_ident nick_to_name));
 use Onis::Data::Persistent ();
 
 register_plugin ('TEXT', \&add);
@@ -15,6 +15,7 @@ register_plugin ('OUTPUT', \&output);
 
 our $LongtermLastSeen = Onis::Data::Persistent->new ('LongtermLastSeen', 'nick', 'day');
 our $LongtermCache    = Onis::Data::Persistent->new ('LongtermCache', 'key', qw(time0 time1 time2 time3));
+our $LongtermData     = {};
 
 =head1 CONFIGURATION OPTIONS
 
@@ -89,102 +90,115 @@ sub add
 
 sub calculate
 {
-	for ($WeekdayCache->keys ())
+	my $now_epoch = get_most_recent_time ();
+	my $now = int ($now_epoch / 86400);
+	return unless ($now);
+
+	my $old = 1 + $now - $DisplayDays;
+
+	my $del = {};
+
+	for ($LongtermLastSeen->keys ())
 	{
 		my $nick = $_;
-		my $main = $nick eq '<TOTAL>' ? '<TOTAL>' : get_main_nick ($nick);
-		my @data = $WeekdayCache->get ($nick);
+		my ($last) = $LongtermLastSeen->get ($nick);
 
-		if (!defined ($WeekdayData->{$main}))
+		if ($last < $old)
 		{
-			$WeekdayData->{$main} =
-			{
-				sun => [0, 0, 0, 0],
-				mon => [0, 0, 0, 0],
-				tue => [0, 0, 0, 0],
-				wed => [0, 0, 0, 0],
-				thu => [0, 0, 0, 0],
-				fri => [0, 0, 0, 0],
-				sat => [0, 0, 0, 0]
-			};
+			$del->{$nick} = $last;
+			$LongtermLastSeen->del ($nick);
+		}
+	}
+	
+	for ($LongtermCache->keys ())
+	{
+		my $key = $_;
+		my ($nick, $day) = split (m/:/, $key);
+
+		if (defined ($del->{$nick}) or ($day < $old))
+		{
+			$LongtermCache->del ($key);
+			next;
 		}
 
-		for (my $i = 0; $i < 7; $i++)
+		my $idx = $day - $old;
+		my $main = get_main_nick ($nick);
+		my @data = $LongtermCache->get ($key);
+		
+		if (!defined ($LongtermData->{$main}))
 		{
-			my $day = $Weekdays[$i];
-			for (my $j = 0; $j < 4; $j++)
-			{
-				my $idx = ($i * 4) + $j;
-				$WeekdayData->{$main}{$day}[$j] += $data[$idx];
-			}
+			$LongtermData->{$main} = [];
+			$LongtermData->{$main}[$_] = [0, 0, 0, 0] for (0 .. ($DisplayDays - 1));
 		}
+		if (!defined ($LongtermData->{'<TOTAL>'}))
+		{
+			$LongtermData->{'<TOTAL>'} = [];
+			$LongtermData->{'<TOTAL>'}[$_] = [0, 0, 0, 0] for (0 .. ($DisplayDays - 1));
+		}
+
+		$LongtermData->{$main}[$idx][$_] += $data[$_] for (0 .. 3);
+		$LongtermData->{'<TOTAL>'}[$idx][$_] += $data[$_] for (0 .. 3);
 	}
 }
 
 sub output
 {
 	calculate ();
-	return (undef) unless (%$WeekdayData);
+	return (undef) unless (%$LongtermData);
 
-	my @order =
-	(
-		[1, 'mon', 'Monday'],
-		[2, 'tue', 'Tuesday'],
-		[3, 'wed', 'Wednesday'],
-		[4, 'thu', 'Thursday'],
-		[5, 'fri', 'Friday'],
-		[6, 'sat', 'Saturday'],
-		[0, 'sun', 'Sunday']
-	);
+	my $now_epoch = get_most_recent_time ();
+	my $now = int ($now_epoch / 86400);
+	return unless ($now);
 
-	my $data = $WeekdayData->{'<TOTAL>'};
+	my $old = 1 + $now - $DisplayDays;
+
+	my $data = $LongtermData->{'<TOTAL>'};
+
+	my @weekdays = (qw(sun mon tue wed thu fri sat sun));
 
 	my $fh = get_filehandle ();
 	
 	my $max = 0;
 	my $total = 0;
-	my $bar_factor = 0;
 
-	for (@order)
+	for (my $i = 0; $i < $DisplayDays; $i++)
 	{
-		my ($num, $abbr, $name) = @$_;
-
-		for (my $i = 0; $i < 4; $i++)
+		for (my $j = 0; $j < 4; $j++)
 		{
-			$max = $data->{$abbr}[$i] if ($max < $data->{$abbr}[$i]);
-			$total += $data->{$abbr}[$i];
+			$max = $data->[$i][$j] if ($max < $data->[$i][$j]);
+			$total += $data->[$i][$j];
 		}
 	}
 	
-	$bar_factor = $BarHeight / $max;
-	
-	print $fh qq#<table class="plugin weekdays">\n  <tr class="bars">\n#;
-	for (@order)
+	print $fh qq#<table class="plugin longterm">\n  <tr class="bars">\n#;
+	for (my $i = 0; $i < $DisplayDays; $i++)
 	{
-		my ($num, $abbr, $name) = @$_;
-		for (my $i = 0; $i < 4; $i++)
+		for (my $j = 0; $j < 4; $j++)
 		{
-			my $num = $data->{$abbr}[$i];
+			my $num = $data->[$i][$j];
 			my $height = sprintf ("%.2f", (95 * $num / $max));
-			my $img = $VImages[$i];
+			my $img = $VImages[$j];
 
-			print $fh qq#    <td class="bar vertical $abbr">#,
+			print $fh qq#    <td class="bar vertical">#,
 			qq(<img src="$img" alt="" class="first last" style="height: ${height}%;" /></td>\n);
 		}
 	}
 	print $fh qq(  </tr>\n  <tr class="counter">\n);
-	for (@order)
+	for (my $i = 0; $i < $DisplayDays; $i++)
 	{
-		my ($num, $abbr, $name) = @$_;
-		my $sum = $data->{$abbr}[0] + $data->{$abbr}[1] + $data->{$abbr}[2] + $data->{$abbr}[3];
-		my $pct = sprintf ("%.1f", (100 * $sum / $total));
-		print $fh qq(    <td colspan="4" class="counter $abbr">$pct%</td>\n);
+		my $sum = $data->[$i][0] + $data->[$i][1] + $data->[$i][2] + $data->[$i][3];
+		my $percent = sprintf ("%.1f", 100 * $sum / $total);
+
+		print $fh qq(    <td colspan="4" class="counter">$percent%</td>\n);
 	}
 	print $fh qq(  </tr>\n  <tr class="numeration">\n);
-	for (@order)
+	for (my $i = 0; $i < $DisplayDays; $i++)
 	{
-		my ($num, $abbr, $name) = @$_;
-		print $fh qq(    <td colspan="4" class="numeration $abbr">$name</td>\n);
+		my $epoch = ($old + $i) * 86400;
+		my ($day, $wd) = (localtime ($epoch))[3,6];
+		my $class = $weekdays[$wd];
+		
+		print $fh qq(    <td colspan="4" class="numeration $class">$day.</td>\n);
 	}
 	print $fh "  </tr>\n</table>\n\n";
 }

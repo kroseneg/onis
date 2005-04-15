@@ -71,6 +71,7 @@ foreach ('Core', get_config ('plugin'))
 
 if (!get_config ('input'))
 {
+	# TODO: Make a complete (!) lsit..
 	print STDERR <<EOF;
 
 Usage: $0 [options] <logfile> [logfile logfile ..]
