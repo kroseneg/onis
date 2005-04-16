@@ -3,11 +3,22 @@ package Onis::Plugins::Weekdays;
 use strict;
 use warnings;
 
+use Exporter;
+
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(register_plugin get_main_nick nick_to_ident nick_to_name));
 use Onis::Data::Persistent ();
+
+=head1 NAME
+
+Onis::Plugins::Weekdays - Activity based on weekdays
+
+=cut
+
+@Onis::Plugins::Weekdays::EXPORT_OK = (qw(get_weekdays));
+@Onis::Plugins::Weekdays::ISA = ('Exporter');
 
 register_plugin ('TEXT', \&add);
 register_plugin ('ACTION', \&add);
@@ -26,19 +37,25 @@ qw(
 our $WeekdayData = {};
 our @Weekdays = (qw(sun mon tue wed thu fri sat));
 
-our $BarHeight = 130;
-if (get_config ('bar_height'))
-{
-	my $tmp = get_config ('bar_height');
-	$tmp =~ s/\D//g;
-	$BarHeight = $tmp if ($tmp >= 10);
-}
+=head1 CONFIGURATION OPTIONS
+
+=over 4
+
+=item B<vertical_images>: I<image0>, I<image1>, I<image2>, I<image3>;
+
+Sets the images used for vertical bars.
+
+=cut
 
 our @VImages = get_config ('vertical_images');
 if (scalar (@VImages) != 4)
 {
 	@VImages = qw#images/ver0n.png images/ver1n.png images/ver2n.png images/ver3n.png#;
 }
+
+=back
+
+=cut
 
 my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
@@ -122,7 +139,6 @@ sub output
 	
 	my $max = 0;
 	my $total = 0;
-	my $bar_factor = 0;
 
 	for (@order)
 	{
@@ -134,8 +150,6 @@ sub output
 			$total += $data->{$abbr}[$i];
 		}
 	}
-	
-	$bar_factor = $BarHeight / $max;
 	
 	print $fh qq#<table class="plugin weekdays">\n  <tr class="bars">\n#;
 	for (@order)
@@ -167,3 +181,44 @@ sub output
 	}
 	print $fh "  </tr>\n</table>\n\n";
 }
+
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_weekdays> (I<$nick>)
+
+Returns a hashref with the weekday information for I<$nick>. Numbers are
+character counters. The returned data has the following format:
+
+  {
+    sun => [0, 0, 0, 0],
+    mon => [0, 0, 0, 0],
+    tue => [0, 0, 0, 0],
+    wed => [0, 0, 0, 0],
+    thu => [0, 0, 0, 0],
+    fri => [0, 0, 0, 0],
+    sat => [0, 0, 0, 0]
+  }
+
+=cut
+
+sub get_weekdays
+{
+	my $nick = shift;
+
+	if (!defined ($WeekdayData->{$nick}))
+	{
+		return ({});
+	}
+
+	return ($WeekdayData->{$nick});
+}
+
+=back
+
+=head1 AUTHOR
+
+Florian octo Forster E<lt>octo at verplant.orgE<gt>
+
+=cut

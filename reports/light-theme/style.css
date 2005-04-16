@@ -221,12 +221,16 @@ table.userdetails td.convpartners td.bar img
 	height: 4px;
 }
 
-table.userdetails table.hours tr.bars
+table.userdetails table.hours tr.bars,
+table.userdetails table.weekdays tr.bars,
+table.userdetails table.longterm tr.bars
 {
 	height: 75px;
 }
 
-table.userdetails table.hours tr.bars td.bar img
+table.userdetails table.hours tr.bars td.bar img,
+table.userdetails table.weekdays tr.bars td.bar img,
+table.userdetails table.longterm tr.bars td.bar img
 {
 	width: 3px;
 }

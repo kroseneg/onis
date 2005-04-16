@@ -341,3 +341,5 @@ sub get_image
 =head1 AUTHOR
 
 Florian octo Forster E<lt>octo at verplant.orgE<gt>
+
+=cut

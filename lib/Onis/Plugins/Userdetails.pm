@@ -10,6 +10,7 @@ use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
 use Onis::Users (qw(ident_to_name get_link get_image));
 
 use Onis::Plugins::Core (qw(get_core_nick_counters get_sorted_nicklist));
+use Onis::Plugins::Weekdays (qw(get_weekdays));
 use Onis::Plugins::Conversations (qw(get_conversations));
 use Onis::Plugins::Bignumbers (qw(get_bignumbers));
 use Onis::Plugins::Interestingnumbers (qw(get_interestingnumbers));
@@ -136,8 +137,6 @@ sub output
 {
 	my $nicks_ref = get_sorted_nicklist ();
 	
-	my $max = $PLUGIN_MAX;
-	
 	my $fh = get_filehandle ();
 
 	my $trans = translate ('Detailed nick stats');
@@ -145,17 +144,19 @@ sub output
 
 	my $max_time = 0;
 	my $max_conv = 0;
+	my $max_weekday = 0;
 
 	my @nicks = @$nicks_ref;
 	my $nick_data = {};
 
-	splice (@nicks, $max) if (scalar (@nicks) > $max);
+	splice (@nicks, $PLUGIN_MAX) if (scalar (@nicks) > $PLUGIN_MAX);
 
 	for (@nicks)
 	{
 		my $nick = $_;
 
 		$nick_data->{$nick} = get_core_nick_counters ($nick);
+		$nick_data->{$nick}{'weekdays'} = get_weekdays ($nick);
 		$nick_data->{$nick}{'conversations'} = get_conversations ($nick);
 		$nick_data->{$nick}{'bignumbers'} = get_bignumbers ($nick);
 		$nick_data->{$nick}{'interestingnumbers'} = get_interestingnumbers ($nick);
@@ -172,6 +173,17 @@ sub output
 			my $ptr = $nick_data->{$nick}{'conversations'}{$other}{'nicks'}{$nick};
 			$num = $ptr->[0] + $ptr->[1] + $ptr->[2] + $ptr->[3];
 			$max_conv = $num if ($max_conv < $num);
+		}
+
+		for (keys %{$nick_data->{$nick}{'weekdays'}})
+		{
+			my $day = $_;
+			my $ptr = $nick_data->{$nick}{'weekdays'}{$day};
+
+			for (my $i = 0; $i < 4; $i++)
+			{
+				$max_weekday = $ptr->[$i] if ($max_weekday < $ptr->[$i]);
+			}
 		}
 	}
 
@@ -190,7 +202,7 @@ sub output
 	
 	print $fh qq#<table class="plugin userdetails">\n#,
 	qq#  <tr>\n#,
-	qq#    <th colspan="#, $DISPLAY_IMAGES ? 3 : 2, qq#">$trans</th>\n#,
+	qq#    <th colspan="#, $DISPLAY_IMAGES ? 4 : 3, qq#">$trans</th>\n#,
 	qq#  </tr>\n#;
 
 	for (@nicks)
@@ -201,7 +213,7 @@ sub output
 		my $ptr = $nick_data->{$nick};
 
 		print $fh qq#  <tr>\n#,
-		qq#    <th colspan="#, $DISPLAY_IMAGES ? 3 : 2, qq#" class="nick">$print</th>\n#,
+		qq#    <th colspan="#, $DISPLAY_IMAGES ? 4 : 3, qq#" class="nick">$print</th>\n#,
 		qq#  </tr>\n#,
 		qq#  <tr>\n#;
 
@@ -304,14 +316,73 @@ sub output
 			printf $fh ("      $trans<br />\n", $num);
 		}
 
-		# actions # TODO
-		# exclamation ratio # TODO
-		# # of nicks
-		#
-		# chats with
-		# lines per day
+		print $fh qq#    </td>\n    <td>\n#;
+		
+		if (%{$ptr->{'conversations'}})
+		{
+			my $i;
+			my @others = sort
+			{
+				($ptr->{'conversations'}{$b}{'nicks'}{$nick}[0]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[1]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[2]
+					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[3])
+				<=>
+				($ptr->{'conversations'}{$a}{'nicks'}{$nick}[0]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[1]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[2]
+					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[3])
+			}
+			(keys %{$ptr->{'conversations'}});
 
-		print $fh qq#    </td>\n  </tr>\n  <tr>\n    <td class="houractivity">\n#;
+			$trans = translate ('Talks to');
+
+			print $fh <<EOF;
+      <table class="conversations">
+        <tr>
+	  <td colspan="2">$trans:</td>
+	</tr>
+EOF
+
+			for (my $i = 0; $i < $PLUGIN_MAX and $i < scalar (@others); $i++)
+			{
+				my $other = $others[$i];
+				my $other_name = nick_to_name ($other) || $other;
+				my $total = 0;
+
+				print $fh "        <tr>\n",
+				qq#          <td class="nick right">$other_name</td>\n#,
+				qq#          <td class="bar horizontal right">#;
+
+				for (my $k = 0; $k < 4; $k++)
+				{
+					my $img = $H_IMAGES[$k];
+					my $num = $ptr->{'conversations'}{$other}{'nicks'}{$nick}[$k];
+					my $width = sprintf ("%.2f", 95 * $num / $max_conv);
+					
+					print $fh qq#<img src="$img" alt="" #;
+					if ($k == 0)
+					{
+						print $fh qq#class="first" #;
+					}
+					elsif ($k == 3)
+					{
+						print $fh qq#class="last" #;
+					}
+					print $fh qq#style="width: $width\%;" />#;
+				}
+				
+				print $fh "</td>\n        </tr>\n";
+			}
+
+			print $fh "      </table>\n";
+		}
+		else
+		{
+			print $fh '&nbsp;';
+		}
+		print $fh qq#    </td>\n  </tr>\n#,
+		qq#  <tr>\n    <td>\n#;
 		
 		if (defined ($ptr->{'chars'}))
 		{
@@ -348,70 +419,54 @@ EOF
 			print '&nbsp;';
 		}
 
-		print $fh qq#    </td>\n    <td class="convpartners">\n#;
-		
-		if (%{$ptr->{'conversations'}})
+		print $fh qq#    </td>\n    <td>\n#;
+
+		#weekly
+		if (%{$nick_data->{$nick}{'weekdays'}})
 		{
-			my $i;
-			my @others = sort
+			my $data = $nick_data->{$nick}{'weekdays'};
+			my @days = (qw(mon tue wed thu fri sat sun));
+
+			print $fh qq#      <table class="weekdays">\n#,
+			qq#        <tr class="bars">\n#;
+
+			for (@days)
 			{
-				($ptr->{'conversations'}{$b}{'nicks'}{$nick}[0]
-					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[1]
-					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[2]
-					+ $ptr->{'conversations'}{$b}{'nicks'}{$nick}[3])
-				<=>
-				($ptr->{'conversations'}{$a}{'nicks'}{$nick}[0]
-					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[1]
-					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[2]
-					+ $ptr->{'conversations'}{$a}{'nicks'}{$nick}[3])
-			}
-			(keys %{$ptr->{'conversations'}});
-
-			$trans = translate ('Talks to');
-
-			print $fh <<EOF;
-      <table>
-        <tr>
-	  <td colspan="2">$trans:</td>
-	</tr>
-EOF
-
-			for (my $i = 0; $i < $PLUGIN_MAX and $i < scalar (@others); $i++)
-			{
-				my $other = $others[$i];
-				my $other_name = nick_to_name ($other) || $other;
-				my $total = 0;
-
-				print $fh "        <tr>\n",
-				qq#          <td class="nick">$other_name</td>\n#,
-				qq#          <td class="bar">#;
-
-				for (my $k = 0; $k < 4; $k++)
+				my $day = $_;
+				for (my $i = 0; $i < 4; $i++)
 				{
-					my $img = $H_IMAGES[$k];
-					my $width = int (0.5 + ($conv_factor * $ptr->{'conversations'}{$other}{'nicks'}{$nick}[$k])) || 1;
-					
-					print $fh qq#<img src="$img" alt="" #;
-					if ($k == 0)
-					{
-						print $fh qq#class="first" #;
-					}
-					elsif ($k == 3)
-					{
-						print $fh qq#class="last" #;
-					}
-					print $fh qq#style="width: ${width}px;" />#;
+					my $num = $nick_data->{$nick}{'weekdays'}{$day}[$i];
+					my $height = sprintf ("%.2f", 95 * $num / $max_weekday);
+					my $class = '';
+					my $img = $V_IMAGES[$i];
+
+					print $fh qq#          <td class="bar vertical">#,
+					qq#<img src="$img" alt="" class="first last" style="height: $height\%;" />#,
+					qq#</td>\n#;
 				}
-				
-				print $fh "</td>\n        </tr>\n";
 			}
 
-			print $fh "      </table>\n";
+			print $fh qq#        </tr>\n#,
+			qq#        <tr class="numeration">\n#;
+
+			for (@days)
+			{
+				my $day = $_;
+				my $trans = translate ($day);
+				
+				print $fh qq#          <td colspan="4" class="numeration $day">$trans</td>\n#;
+			}
+
+			print $fh qq#        </tr>\n#,
+			qq#      </table>\n#;
 		}
-		else
-		{
-			print $fh '&nbsp;';
-		}
+
+		print $fh qq#    </td>\n    <td>\n#;
+
+		#longterm
+		print $fh qq#      &nbsp;\n#;
+
+		print $fh qq#    </td>\n  </tr>\n#;
 	}
 
 	print $fh "</table>\n\n";
