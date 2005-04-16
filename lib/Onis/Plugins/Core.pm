@@ -20,7 +20,7 @@ complicated plugin so far.
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Users (qw(get_realname get_link get_image ident_to_name));
+use Onis::Users (qw(get_realname get_link get_image chatter_to_name));
 use Onis::Data::Core (qw(get_all_nicks nick_to_ident ident_to_nick get_main_nick register_plugin));
 use Onis::Data::Persistent ();
 
@@ -727,7 +727,7 @@ EOF
 	{
 		my $nick = $_;
 		my $ident = nick_to_ident ($nick);
-		my $name  = ident_to_name ($ident);
+		my $name  = chatter_to_name ("$nick!$ident");
 		my $print = $name || $nick;
 
 		$linescount++;
@@ -1053,6 +1053,6 @@ sub nick_is_in_main_table
 
 =head1 AUTHOR
 
-Florian octo Forster, E<lt>octo at verplant.orgE<gt>
+Florian octo Forster E<lt>octo at verplant.orgE<gt>
 
 =cut

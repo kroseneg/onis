@@ -16,7 +16,7 @@ use warnings;
 
 use Exporter;
 use Onis::Config qw(get_config);
-use Onis::Users qw(ident_to_name);
+use Onis::Users qw(chatter_to_name);
 use Onis::Data::Persistent;
 use Onis::Parser::Persistent qw(get_absolute_time);
 
@@ -43,7 +43,9 @@ our $ChannelNames = Onis::Data::Persistent->new ('ChannelNames', 'channel', 'cou
 qw(
 	store unsharp calculate_nicks 
 
-	get_all_nicks get_channel get_main_nick nick_to_ident ident_to_nick nick_to_name
+	get_all_nicks get_channel get_main_nick
+	nick_to_ident ident_to_nick
+	nick_to_name ident_to_name
 	get_total_lines get_most_recent_time nick_rename print_output register_plugin
 );
 @Onis::Data::Core::ISA = ('Exporter');
@@ -378,7 +380,6 @@ sub calculate_nicks
 	{
 		my $chatter = $_;
 		my ($nick, $ident) = split (m/!/, $chatter);
-		my $name = ident_to_name ($ident);
 		my ($counter) = $ChatterList->get ($chatter);
 
 		$nicks->{$nick}{$ident} = 0 unless (defined ($nicks->{$nick}{$ident}));
@@ -396,7 +397,7 @@ sub calculate_nicks
 		for (keys %{$nicks->{$this_nick}})
 		{
 			my $ident = $_;
-			my $name = ident_to_name ($ident);
+			my $name = chatter_to_name ("$this_nick!$ident");
 			my $num = $nicks->{$this_nick}{$ident};
 			
 			$this_total += $num;
@@ -659,8 +660,7 @@ sub ident_to_nick
 
 =item I<$name> = B<nick_to_name> (I<$nick>)
 
-Return the name associated with I<$nick>. This function uses B<ident_to_name>
-(see L<Onis::Users>).
+Return the name associated with I<$nick>.
 
 =cut
 
@@ -671,7 +671,28 @@ sub nick_to_name
 
 	if ($ident)
 	{
-		return (ident_to_name ($ident));
+		return (chatter_to_name ("$nick!$ident"));
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item I<$name> = B<ident_to_name> (I<$ident>)
+
+Returns the name associated with I<$ident>.
+
+=cut
+
+sub ident_to_name
+{
+	my $ident = shift;
+	my $nick = ident_to_nick ($ident);
+
+	if ($nick)
+	{
+		return (chatter_to_name ("$nick!$ident"));
 	}
 	else
 	{

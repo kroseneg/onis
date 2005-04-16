@@ -6,11 +6,12 @@ use warnings;
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(html_escape get_filehandle));
 use Onis::Language (qw(translate));
-use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name));
-use Onis::Users (qw(ident_to_name get_link get_image));
+use Onis::Data::Core (qw(get_main_nick register_plugin nick_to_name get_most_recent_time));
+use Onis::Users (qw(get_link get_image));
 
 use Onis::Plugins::Core (qw(get_core_nick_counters get_sorted_nicklist));
 use Onis::Plugins::Weekdays (qw(get_weekdays));
+use Onis::Plugins::Longterm (qw(get_longterm));
 use Onis::Plugins::Conversations (qw(get_conversations));
 use Onis::Plugins::Bignumbers (qw(get_bignumbers));
 use Onis::Plugins::Interestingnumbers (qw(get_interestingnumbers));
@@ -128,6 +129,14 @@ if (get_config ('bar_width'))
 	$BAR_WIDTH = $tmp if ($tmp >= 10);
 }
 
+our $LongtermDays = 7;
+if (get_config ('userdetails_longterm_days'))
+{
+	my $tmp = get_config ('userdetails_longterm_days');
+	$tmp =~ s/\D//g;
+	$LongtermDays = $tmp if ($tmp);
+}
+
 my $VERSION = '$Id: Userdetails.pm,v 1.5 2005/03/14 18:40:25 octo Exp $';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
@@ -144,7 +153,8 @@ sub output
 
 	my $max_time = 0;
 	my $max_conv = 0;
-	my $max_weekday = 0;
+	my $max_weekdays = 0;
+	my $max_longterm = 0;
 
 	my @nicks = @$nicks_ref;
 	my $nick_data = {};
@@ -157,6 +167,7 @@ sub output
 
 		$nick_data->{$nick} = get_core_nick_counters ($nick);
 		$nick_data->{$nick}{'weekdays'} = get_weekdays ($nick);
+		$nick_data->{$nick}{'longterm'} = get_longterm ($nick);
 		$nick_data->{$nick}{'conversations'} = get_conversations ($nick);
 		$nick_data->{$nick}{'bignumbers'} = get_bignumbers ($nick);
 		$nick_data->{$nick}{'interestingnumbers'} = get_interestingnumbers ($nick);
@@ -177,29 +188,30 @@ sub output
 
 		for (keys %{$nick_data->{$nick}{'weekdays'}})
 		{
-			my $day = $_;
-			my $ptr = $nick_data->{$nick}{'weekdays'}{$day};
-
+			my $ptr = $nick_data->{$nick}{'weekdays'}{$_};
 			for (my $i = 0; $i < 4; $i++)
 			{
-				$max_weekday = $ptr->[$i] if ($max_weekday < $ptr->[$i]);
+				$max_weekdays = $ptr->[$i] if ($max_weekdays < $ptr->[$i]);
+			}
+		}
+
+		if (@{$nick_data->{$nick}{'longterm'}})
+		{
+			my $num = scalar (@{$nick_data->{$nick}{'longterm'}});
+			$LongtermDays = $num if ($LongtermDays > $num);
+
+			for (my $i = $num - $LongtermDays; $i < $num; $i++)
+			{
+				my $ptr = $nick_data->{$nick}{'longterm'}[$i];
+
+				for (my $j = 0; $j < 4; $j++)
+				{
+					$max_longterm = $ptr->[$j] if ($max_longterm < $ptr->[$j]);
+				}
 			}
 		}
 	}
 
-	my $time_factor = 0;
-	my $conv_factor = 0;
-
-	if ($max_time)
-	{
-		$time_factor = $BAR_HEIGHT / $max_time;
-	}
-
-	if ($max_conv)
-	{
-		$conv_factor = $BAR_WIDTH / $max_conv;
-	}
-	
 	print $fh qq#<table class="plugin userdetails">\n#,
 	qq#  <tr>\n#,
 	qq#    <th colspan="#, $DISPLAY_IMAGES ? 4 : 3, qq#">$trans</th>\n#,
@@ -416,7 +428,7 @@ EOF
 		}
 		else
 		{
-			print '&nbsp;';
+			print $fh "      &nbsp;\n";
 		}
 
 		print $fh qq#    </td>\n    <td>\n#;
@@ -436,8 +448,7 @@ EOF
 				for (my $i = 0; $i < 4; $i++)
 				{
 					my $num = $nick_data->{$nick}{'weekdays'}{$day}[$i];
-					my $height = sprintf ("%.2f", 95 * $num / $max_weekday);
-					my $class = '';
+					my $height = sprintf ("%.2f", 95 * $num / $max_weekdays);
 					my $img = $V_IMAGES[$i];
 
 					print $fh qq#          <td class="bar vertical">#,
@@ -460,11 +471,62 @@ EOF
 			print $fh qq#        </tr>\n#,
 			qq#      </table>\n#;
 		}
+		else
+		{
+			print $fh "      &nbsp;\n";
+		}
 
 		print $fh qq#    </td>\n    <td>\n#;
 
 		#longterm
-		print $fh qq#      &nbsp;\n#;
+		if (@{$nick_data->{$nick}{'longterm'}})
+		{
+			my $num_fields = scalar (@{$nick_data->{$nick}{'longterm'}});
+			my $now_epoch = get_most_recent_time ();
+			my $now_day = int ($now_epoch / 86400);
+			my $last_day;
+
+			my @weekdays = (qw(sun mon tue wed thu fri sat));
+
+			$LongtermDays = $num_fields if ($LongtermDays > $num_fields);
+			$last_day = 1 + $now_day - $LongtermDays;
+			
+			print $fh qq#      <table class="longterm">\n#,
+			qq#        <tr class="bars">\n#;
+
+			for (my $i = $num_fields - $LongtermDays; $i < $num_fields; $i++)
+			{
+				for (my $j = 0; $j < 4; $j++)
+				{
+					my $num = $nick_data->{$nick}{'longterm'}[$i][$j];
+					my $height = sprintf ("%.2f", 95 * $num / $max_longterm);
+					my $img = $V_IMAGES[$j];
+					
+					print $fh qq#          <td class="bar vertical">#,
+					qq#<img src="$img" alt="" class="first last" style="height: $height\%;" />#,
+					qq#</td>\n#;
+				}
+			}
+			
+			print $fh qq#        </tr>\n#,
+			qq#        <tr class="numeration">\n#;
+
+			for (my $i = 0; $i < $LongtermDays; $i++)
+			{
+				my $epoch = ($last_day + $i) * 86400;
+				my ($day, $wd) = (localtime ($epoch))[3,6];
+				$wd = $weekdays[$wd];
+
+				print $fh qq#          <td colspan="4" class="numeration $wd">$day.</td>\n#;
+			}
+
+			print $fh qq#        </tr>\n#,
+			qq#      </table>\n#;
+		}
+		else
+		{
+			print $fh "      &nbsp;\n";
+		}
 
 		print $fh qq#    </td>\n  </tr>\n#;
 	}

@@ -9,7 +9,6 @@ use Onis::Config qw(get_config);
 use Onis::Html qw(get_filehandle);
 use Onis::Language qw(translate);
 use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident nick_to_name);
-use Onis::Users (qw(ident_to_name));
 use Onis::Data::Persistent;
 
 =head1 NAME

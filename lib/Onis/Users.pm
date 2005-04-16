@@ -8,7 +8,8 @@ use Onis::Data::Persistent ();
 
 @Onis::Users::EXPORT_OK =
 (qw(
-	ident_to_name chatter_to_name name_to_ident
+	chatter_to_name 
+	name_to_chatter name_to_ident name_to_nick
 	get_realname get_link get_image
 ));
 @Onis::Users::ISA = ('Exporter');
@@ -41,9 +42,8 @@ Set $::DEBUG to ``0x1000'' to get extra debug messages.
 =cut
 
 our $Users = {};
-our $IdentToName = {};
-our $NameToIdent = {};
-
+our $ChatterToName = {};
+our $NameToChatter = {};
 
 my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
@@ -196,50 +196,6 @@ sub read_config
 
 =over 4
 
-=item B<ident_to_name> (I<$ident>)
-
-Matches the ident against the configured hostmasks. Uses caching to
-speed up execution. Returns the name or an empty string if not found.
-
-=cut
-
-sub ident_to_name
-{
-	my $ident = shift;
-	my $name = '';
-
-	if (defined ($IdentToName->{$ident}))
-	{
-		$name = $IdentToName->{$ident};
-	}
-	else
-	{
-		USER: for (keys (%$Users))
-		{
-			my $this_name = $_;
-			for (@{$Users->{$this_name}{'host'}})
-			{
-				my $host_re = $_;
-
-				if ($ident =~ $host_re)
-				{
-					$name = $this_name;
-					last (USER);
-				}
-			}
-		}
-
-		if (($::DEBUG & 0x1000) and $name)
-		{
-			print STDERR $/, __FILE__, ": Host ``$ident'' belongs to ``$name''";
-		}
-	}
-	
-	$IdentToName->{$ident} = $name;
-	$NameToIdent->{$name} = $ident if ($name);
-	return ($name);
-}
-
 =item B<chatter_to_name> (I<$chatter>)
 
 Passes the ident-part of I<$chatter> to B<ident_to_name>.
@@ -249,15 +205,62 @@ Passes the ident-part of I<$chatter> to B<ident_to_name>.
 sub chatter_to_name
 {
 	my $chatter = shift;
-	my ($nick, $ident) = split (m/!/, $chatter);
+	my $retval = '';
 
-	return (ident_to_name ($ident));
+	if (defined ($ChatterToName->{$chatter}))
+	{
+		return ($ChatterToName->{$chatter});
+	}
+
+	USER: for (keys %$Users)
+	{
+		my $name = $_;
+		for (@{$Users->{$name}{'host'}})
+		{
+			my $re = $_;
+
+			if ($chatter =~ $re)
+			{
+				$retval = $_;
+				last USER;
+			}
+		}
+	}
+
+	if (($::DEBUG & 0x1000) and $retval)
+	{
+		print STDERR $/, __FILE__, ": ``$chatter'' identified as ``$retval''";
+	}
+
+	$ChatterToName->{$chatter} = $retval;
+	$NameToChatter->{$retval} = $chatter if ($retval);
+
+	return ($retval);
+}
+
+=item B<name_to_chatter> (I<$name>)
+
+Returns the most recent chatter for I<$name>.
+
+=cut
+
+sub name_to_chatter
+{
+	my $name = shift;
+
+	if (defined ($NameToChatter->{$name}))
+	{
+		return ($NameToChatter->{$name});
+	}
+	else
+	{
+		return ('');
+	}
 }
 
 =item B<name_to_ident> (I<$name>)
 
-Does the reverse of B<ident_to_name>: Returns the most recent association of
-I<$name> to an ident. This function should rarely be needed..
+Returns the most recent ident for I<$name>.
 
 =cut
 
@@ -265,9 +268,35 @@ sub name_to_ident
 {
 	my $name = shift;
 
-	if (defined ($NameToIdent->{$name}))
+	if (defined ($NameToChatter->{$name}))
 	{
-		return ($NameToIdent->{$name});
+		my $chatter = $NameToChatter->{$name};
+		my ($nick, $ident) = split (m/!/, $chatter);
+
+		return ($ident);
+	}
+	else
+	{
+		return ('');
+	}
+}
+
+=item B<name_to_nick> (I<$name>)
+
+Returns the most recent nick for I<$name>.
+
+=cut
+
+sub name_to_nick
+{
+	my $name = shift;
+
+	if (defined ($NameToChatter->{$name}))
+	{
+		my $chatter = $NameToChatter->{$name};
+		my ($nick, $ident) = split (m/!/, $chatter);
+
+		return ($nick);
 	}
 	else
 	{

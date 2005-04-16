@@ -3,11 +3,22 @@ package Onis::Plugins::Longterm;
 use strict;
 use warnings;
 
+use Exporter;
+
 use Onis::Config (qw(get_config));
 use Onis::Html (qw(get_filehandle));
 use Onis::Language (qw(translate));
 use Onis::Data::Core (qw(register_plugin get_main_nick get_most_recent_time nick_to_ident nick_to_name));
 use Onis::Data::Persistent ();
+
+=head1 NAME
+
+Onis::Plugins::Longterm
+
+=cut
+
+@Onis::Plugins::Longterm::EXPORT_OK = (qw(get_longterm));
+@Onis::Plugins::Longterm::ISA = ('Exporter');
 
 register_plugin ('TEXT', \&add);
 register_plugin ('ACTION', \&add);
@@ -202,3 +213,41 @@ sub output
 	}
 	print $fh "  </tr>\n</table>\n\n";
 }
+
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_longterm> (I<$nick>)
+
+Returns the longterm-statistics for I<$nick>. The numbers are array-counters.
+The format is as follows:
+
+  [
+    [0, 0, 0, 0], # oldest day
+    ...,
+    [0, 0, 0, 0], # yesterday
+    [0, 0, 0, 0]  # today
+  ]
+
+=cut
+
+sub get_longterm
+{
+	my $nick = shift;
+
+	if (!defined ($LongtermData->{$nick}))
+	{
+		return ([]);
+	}
+
+	return ($LongtermData->{$nick});
+}
+
+=back
+
+=head1 AUTHOR
+
+Florian octo Forster E<lt>octo at verplant.orgE<gt>
+
+=cut
