@@ -8,15 +8,31 @@ use Onis::Config qw/get_config/;
 use Onis::Language qw/translate/;
 use Onis::Data::Core qw#get_channel get_total_lines#;
 
+=head1 NAME
+
+Onis::Html - Low level page generation stuff..
+
+=cut
+
 @Onis::Html::EXPORT_OK = qw/open_file close_file get_filehandle html_escape/;
 @Onis::Html::ISA = ('Exporter');
 
 our $fh;
 our $time_start = time ();
 
-our $WANT_COLOR = 0;
-our $PUBLIC_PAGE = 1;
+=head1 CONFIGURATION OPTIONS
 
+=over 4
+
+=item B<color_codes>: I<false>;
+
+Wether or not to print the color codes (introduced by mIRC, used by idiots and
+ignored by the rest) in the generated HTML-file. Of course this defaults to not
+print the codes..
+
+=cut
+
+our $WantColor = 0;
 if (get_config ('color_codes'))
 {
 	my $temp = get_config ('color_codes');
@@ -24,33 +40,109 @@ if (get_config ('color_codes'))
 			or ($temp eq 'yes')
 			or ($temp eq 'on'))
 	{
-		$WANT_COLOR = 1;
+		$WantColor = 1;
 	}
 }
+
+=item B<public_page>: I<true>;
+
+Wether or not this is a public page. Public pages may be linked on the onis
+homepage at some point in the fututre..
+
+=cut
+
+our $PublicPage = 1;
 if (get_config ('public_page'))
 {
 	my $temp = get_config ('public_page');
 
 	if ($temp =~ m/false|off|no/i)
 	{
-		$PUBLIC_PAGE = 0;
+		$PublicPage = 0;
 	}
 }
+
+=item B<stylesheet>: I<style.css>;
+
+Sets the stylesheet to use. This is included in the HTML-file as-is, so you
+have to take care of absolute/relative paths yourself..
+
+=cut
+
+our $Stylesheet = 'style.css';
+if (get_config ('stylesheet'))
+{
+	$Stylesheet = get_config ('stylesheet');
+}
+
+=item B<encoding>: I<iso-8859-1>;
+
+Sets the encoding to include in the HTML-file. If you don't know what this is,
+don't change it..
+
+=cut
+
+our $Encoding = 'iso-8859-1';
+if (get_config ('encoding'))
+{
+	$Encoding = get_config ('encoding');
+}
+
+=item B<user>: I<onis>;
+
+Sets the user that created the page. Defaults to the environment variable
+B<USER> or "onis", if it is not set.
+
+=cut
+
+our $User = 'onis';
+if (get_config ('user'))
+{
+	$User = get_config ('user');
+}
+elsif (defined ($ENV{'USER'}))
+{
+	$User = $ENV{'USER'};
+}
+
+=back
+
+=cut
 
 # `orange' is not a plain html name.
 # The color we want is #FFA500
 our @mirc_colors = qw/white black navy green red maroon purple orange
 			yellow lime teal aqua blue fuchsia gray silver/;
 
-my $VERSION = '$Id: Html.pm,v 1.20 2004/09/16 10:30:20 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
+
+=head1 EXPORTED FUNCTIONS
+
+=over 4
+
+=item B<get_filehandle> ()
+
+Returns the filehandle of the output file or undef, if B<open_file> has not
+been called yet.
+
+=cut
 
 sub get_filehandle
 {
 	return ($fh);
 }
+
+=item B<open_file> (I<$filename>)
+
+Opens the file I<$filename> if no file is open at this point. The file is
+exclusively locked and the filehandle stored in the module. The HTML-header is
+printed to the file and the filehandle is returned. You can get another
+reference by calling B<get_filehandle>.
+
+=cut
 
 sub open_file
 {
@@ -87,28 +179,6 @@ sub print_head
 	my $generated_time = scalar (localtime ($time_start));
 	my $trans;
 
-	my $stylesheet = 'style.css';
-	if (get_config ('stylesheet'))
-	{
-		$stylesheet = get_config ('stylesheet');
-	}
-
-	my $encoding = 'iso-8859-1';
-	if (get_config ('encoding'))
-	{
-		$encoding = get_config ('encoding');
-	}
-
-	my $user = 'onis';
-	if (get_config ('user'))
-	{
-		$user = get_config ('user');
-	}
-	elsif (defined ($ENV{'USER'}))
-	{
-		$user = $ENV{'USER'};
-	}
-
 	my $channel = get_channel ();
 
 	my @images = get_config ('horizontal_images');
@@ -118,11 +188,11 @@ sub print_head
 	}
 	
 	$trans = translate ('%s statistics created by %s');
-	my $title = sprintf ($trans, $channel, $user);
+	my $title = sprintf ($trans, $channel, $User);
 
 
 	print $fh <<EOF;
-<?xml version="1.0" encoding="$encoding"?>
+<?xml version="1.0" encoding="$Encoding"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
 	"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 
@@ -130,7 +200,7 @@ sub print_head
 <head>
   <title>$title</title>
   <meta http-equiv="Cache-Control" content="public, must-revalidiate" />
-  <link rel="stylesheet" type="text/css" href="$stylesheet" />
+  <link rel="stylesheet" type="text/css" href="$Stylesheet" />
 </head>
 
 <body>
@@ -139,7 +209,7 @@ sub print_head
 EOF
 
 	$trans = translate ('%s stats by %s');
-	$title = sprintf ($trans, $channel, $user);
+	$title = sprintf ($trans, $channel, $User);
 	
 	$trans = translate ('Statistics generated on %s');
 	my $time_msg = sprintf ($trans, $generated_time);
@@ -162,11 +232,14 @@ EOF
 EOF
 }
 
-# this routine adds a box to the end of the html-
-# page with onis' homepage URL, the author's name
-# and email-address. Feel free to uncomment the
-# creation of this box if it's appereance nags
-# you..
+=item B<close_file> ()
+
+Closes the previously opened file. Before it does that though it writed the
+HTML-footer which contains some information about onis and closes all HTML-tags
+opened by B<open_file>.
+
+=cut
+
 sub close_file
 {
 	my $runtime = time () - $time_start;
@@ -202,7 +275,7 @@ EOF
 	printf $fh ($stats, $lines_this_time, $runtime, $lps, $total_lines);
 	print  $fh qq#\n    </td>\n    <td class="right">\n      #;
 	printf $fh ($by, '2000-2005', '<a href="http://verplant.org/">Florian octo Forster</a></span> <span>&lt;octo@<span class="spam">nospam.</span>verplant.org&gt;');
-	print  $fh qq#<img id="smalllogo" src="http://images.verplant.org/onis-small.png" /># if ($PUBLIC_PAGE);
+	print  $fh qq#<img id="smalllogo" src="http://images.verplant.org/onis-small.png" /># if ($PublicPage);
 	print  $fh "<br />\n      ";
 	printf $fh ($link, sprintf (qq#<a href="http://verplant.org/onis/">%s</a>#, $hp));
 	
@@ -216,6 +289,10 @@ EOF
 </html>
 EOF
 }
+
+=back
+
+=cut
 
 sub html_escape
 {
@@ -297,7 +374,7 @@ sub escape_normal
 	$text =~ s/Ö/\&Uuml;/g;
 	$text =~ s/ß/\&szlig;/g;
 
-	if ($WANT_COLOR)
+	if ($WantColor)
 	{
 		$text = find_colors ($text);
 	}
@@ -429,3 +506,9 @@ sub find_colors
 	
 	return ($string);
 }
+
+=head1 AUTHOR
+
+Florian octo Forster E<lt>octo at verplant.orgE<gt>
+
+=cut

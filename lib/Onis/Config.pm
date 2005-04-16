@@ -73,7 +73,7 @@ commas:
 
 our $config = {};
 
-my $VERSION = '$Id: Config.pm,v 1.10 2004/09/16 10:30:00 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
