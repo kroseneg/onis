@@ -2,11 +2,24 @@
 ==================
 http://verplant.org/onis/
 
+  0.8.0 - All new persistency
+ =============================
+ - This release features a complete rewrite of the persistency-code. The
+   new code is much more powerful and flexible. In addition to using
+   Storable onis can now use DBM-files too. This is the first step towards
+   database-backed storage.
+ - A plugin showing the channel activity based on weekdays has been added.
+ - A plugin showing the channel activity over the last 31 days
+   (configurable, of course) has been added.
+ - Many, many code and documentation fixes and additions.
+
+
+
   0.7.2 - Spanish translation
  =============================
  - Javier Garcia Alarcon (Sorry, my term didn't like all the fancy spanish
-   characters :/) has contributed a spanish translation for onis. Thank you
-   very much :)
+   characters :/) has contributed a spanish translation for onis. Thank
+   you very much :)
 
 
 
