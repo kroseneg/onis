@@ -58,6 +58,45 @@ our %NickToNick = ();
 our %NickToIdent = ();
 our %IdentToNick = ();
 
+=head1 CONFIGURATION OPTIONS
+
+=over 4
+
+=item B<unsharp>: I<medium>;
+
+Sets the amount of unsharping onis should do. Valid options are I<none>,
+I<light>, I<medium> and I<hard>.
+
+=over 4
+
+=item I<none>
+
+does not do any unsharping.
+
+=item I<light>
+
+Leaves IP-addresses as they are. The deepest subdomains containing numbers have
+those numbers removed. So C<dsl-084-056-107-131.arcor-ip.net> becomes
+C<dsl-*-*-*-*.arcor-ip.net>.
+
+=item I<medium>
+
+Removes the last byte from IP-adresses. So C<84.56.107.131> becomes
+C<84.56.107.*>. Hostnames have the deepest subdomains removed if they contain
+numers, so C<dsl-084-056-107-131.arcor-ip.net> becomes C<*.arcor-ip.net> while
+C<shell.franken.de> is not modified. This is the default and recommended
+behavior.
+
+=item I<hard>
+
+Handles IP-addresses as I<medium>. Hostnames have all subdomains removed, so
+C<p5493EC60.dip.t-dialin.net> becomes C<*.t-dialin.net> and C<shell.franken.de>
+becomes C<*.franken.de>.
+
+=back
+
+=cut
+
 our $UNSHARP = 'MEDIUM';
 if (get_config ('unsharp'))
 {
@@ -78,11 +117,19 @@ if (get_config ('unsharp'))
 	}
 }
 
+=item B<channel>: I<name>;
+
+Sets the name of the channel. This is mostly automatically figured out, use
+this if onis doesn't get it right or you want another name..
+
+=back
+
+=cut
+
 # TODO
 # - lastrun
-# - total lines
 
-my $VERSION = '$Id: Core.pm,v 1.14 2004/10/31 15:00:32 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 return (1);
@@ -223,8 +270,6 @@ sub store
 Takes an ident (i.e. a user-host-pair, e.g. I<user@host.domain.com> or
 I<login@123.123.123.123>) and "unsharps it". The unsharp version is then
 returned.
-
-What unsharp exactly does is described in the F<README>.
 
 =cut
 
@@ -515,8 +560,7 @@ Returns the name of the channel we're generating stats for.
 
 sub get_channel
 {
-	my $chan = '#unknown'
-	;
+	my $chan = '#unknown';
 	if (get_config ('channel'))
 	{
 		$chan = get_config ('channel');
@@ -537,9 +581,9 @@ sub get_channel
 	}
 
 	# Fix network-safe channel named (RFC 2811)
-	if ($chan =~ m/^![A-Z0-9]{5}.+/)
+	if ($chan =~ m/^![A-Z0-9]{5}(.+)/)
 	{
-		$chan =~ s/[A-Z0-9]{5}//;
+		$chan = '!' . $1;
 	}
 
 	return ($chan);

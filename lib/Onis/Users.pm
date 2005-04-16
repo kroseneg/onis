@@ -45,12 +45,24 @@ our $IdentToName = {};
 our $NameToIdent = {};
 
 
-my $VERSION = '$Id: Users.pm,v 1.2 2004/08/01 13:45:27 octo Exp $';
+my $VERSION = '$Id$';
 print STDERR $/, __FILE__, ": $VERSION" if ($::DEBUG);
 
 read_config ();
 
 return (1);
+
+=head1 CONFIGURATION OPTIONS
+
+=over 4
+
+=item B<users_config>: I<users.conf>;
+
+Sets the file from which to read the user configuration.
+
+=back
+
+=cut
 
 sub read_config
 {
