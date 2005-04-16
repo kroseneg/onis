@@ -16,7 +16,7 @@ internal data for longer than one run..
 
 =cut
 
-use Onis::Config qw#get_config get_checksum#;
+use Onis::Config qw#get_config#;
 
 our $StoreModule = 'None';
 
