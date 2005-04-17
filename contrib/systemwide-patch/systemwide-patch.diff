@@ -17,7 +17,7 @@ diff -ur trunk/onis systemwide-patch/onis
  
  parse_argv (@ARGV);
 -read_config (get_config ('config') ? get_config ('config') : 'onis.conf');
-+read_config (get_config ('config') ? get_config ('config') : '/etc/onis.conf');
++read_config (get_config ('config') ? get_config ('config') : '/etc/onis/onis.conf');
  read_config (scalar get_config ('theme')) if (get_config ('theme'));
  
  my $output = get_config ('output');
