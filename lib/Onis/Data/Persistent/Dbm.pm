@@ -35,7 +35,7 @@ onis' main directory..
 
 =cut
 
-our $DBMDirectory = get_config ('dbm_directory') || 'var';
+our $DBMDirectory = get_config ('storage_dir') || 'var';
 $DBMDirectory =~ s#/$##g;
 
 if (!$DBMDirectory or !-d $DBMDirectory)

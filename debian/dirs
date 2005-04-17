@@ -2,3 +2,4 @@ etc/onis
 usr/bin
 usr/lib/perl5
 usr/share/onis/lang
+var/lib/onis

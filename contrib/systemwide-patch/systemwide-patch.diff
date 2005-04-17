@@ -1,6 +1,30 @@
+diff -ur trunk/lib/Onis/Data/Persistent/Dbm.pm systemwide-patch/lib/Onis/Data/Persistent/Dbm.pm
+--- trunk/lib/Onis/Data/Persistent/Dbm.pm	2005-04-17 17:07:05.000000000 +0200
++++ systemwide-patch/lib/Onis/Data/Persistent/Dbm.pm	2005-04-17 17:08:27.000000000 +0200
+@@ -35,7 +35,7 @@
+ 
+ =cut
+ 
+-our $DBMDirectory = get_config ('storage_dir') || 'var';
++our $DBMDirectory = get_config ('storage_dir') || '/var/lib/onis/';
+ $DBMDirectory =~ s#/$##g;
+ 
+ if (!$DBMDirectory or !-d $DBMDirectory)
+diff -ur trunk/lib/Onis/Data/Persistent/Storable.pm systemwide-patch/lib/Onis/Data/Persistent/Storable.pm
+--- trunk/lib/Onis/Data/Persistent/Storable.pm	2005-04-17 17:07:05.000000000 +0200
++++ systemwide-patch/lib/Onis/Data/Persistent/Storable.pm	2005-04-17 17:08:16.000000000 +0200
+@@ -39,7 +39,7 @@
+ =cut
+ 
+ our $StorageFile = get_config ('storage_file') || 'storage.dat';
+-our $StorageDir  = get_config ('storage_dir')  || 'var';
++our $StorageDir  = get_config ('storage_dir')  || '/var/lib/onis/';
+ 
+ $StorageDir =~ s#/+$##;
+ 
 diff -ur trunk/onis systemwide-patch/onis
---- trunk/onis	2005-04-17 15:14:57.000000000 +0200
-+++ systemwide-patch/onis	2005-04-17 15:20:26.000000000 +0200
+--- trunk/onis	2005-04-17 17:07:05.000000000 +0200
++++ systemwide-patch/onis	2005-04-17 17:07:29.000000000 +0200
 @@ -15,10 +15,6 @@
  
  BEGIN
@@ -13,7 +37,7 @@ diff -ur trunk/onis systemwide-patch/onis
  	# 0x0020   Parser (dropped lines)
  	# 0x0040   Parser (time information)
 @@ -54,13 +50,13 @@
- print STDERR $/, __FILE__, ': $Id: onis 82 2005-04-17 13:14:57Z octo $' if ($::DEBUG);
+ print STDERR $/, __FILE__, ': $Id: onis 88 2005-04-17 14:52:48Z octo $' if ($::DEBUG);
  
  parse_argv (@ARGV);
 -read_config (get_config ('config') ? get_config ('config') : 'onis.conf');
@@ -29,8 +53,8 @@ diff -ur trunk/onis systemwide-patch/onis
  
  foreach ('Core', get_config ('plugin'))
 diff -ur trunk/onis.conf systemwide-patch/onis.conf
---- trunk/onis.conf	2005-04-17 15:13:13.000000000 +0200
-+++ systemwide-patch/onis.conf	2005-04-17 15:25:49.000000000 +0200
+--- trunk/onis.conf	2005-04-17 17:07:05.000000000 +0200
++++ systemwide-patch/onis.conf	2005-04-17 17:07:29.000000000 +0200
 @@ -158,7 +158,7 @@
  
  # Sets the directory in which the storage file(s) should be kept. This is used
@@ -52,3 +76,4 @@ diff -ur trunk/onis.conf systemwide-patch/onis.conf
  # english.lang german.lang norwegian.lang spanish.lang swedish.lang
 -language_file: "lang/english.lang";
 +language_file: "/usr/share/onis/lang/english.lang";
+Only in systemwide-patch: onis.orig
