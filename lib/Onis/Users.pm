@@ -221,7 +221,7 @@ sub chatter_to_name
 
 			if ($chatter =~ $re)
 			{
-				$retval = $_;
+				$retval = $name;
 				last USER;
 			}
 		}

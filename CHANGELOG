@@ -11,6 +11,8 @@ http://verplant.org/onis/
  - A plugin showing the channel activity based on weekdays has been added.
  - A plugin showing the channel activity over the last 31 days
    (configurable, of course) has been added.
+ - The Userdetails-plugin has been extended to display the data of the above
+   plugins, too.
  - Many, many code and documentation fixes and additions.
 
 
