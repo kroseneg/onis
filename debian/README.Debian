@@ -1,0 +1,7 @@
+onis for Debian
+---------------
+
+- The default config file has been moved to /etc/onis/onis.conf
+- Language-files and themes are installed in /usr/share/onis/
+
+ -- Florian Forster <octo@verplant.org>, Thu,  3 Mar 2005 10:54:23 +0100

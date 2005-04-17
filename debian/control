@@ -1,0 +1,13 @@
+Source: onis
+Section: unknown
+Priority: optional
+Maintainer: Florian Forster <octo@verplant.org>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.1
+
+Package: onis
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
+Description: onis is a script to convert irc logfiles into an HTML statistic page.
+ onis converts IRC logfiles into nice HTML statistics pages. It features
+ support for several popular logfile formats and various languages.

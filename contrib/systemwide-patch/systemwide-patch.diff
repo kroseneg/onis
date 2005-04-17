@@ -1,0 +1,54 @@
+diff -ur trunk/onis systemwide-patch/onis
+--- trunk/onis	2005-04-17 15:14:57.000000000 +0200
++++ systemwide-patch/onis	2005-04-17 15:20:26.000000000 +0200
+@@ -15,10 +15,6 @@
+ 
+ BEGIN
+ {
+-	if ($0 =~ m#^(.*)[/\\]#) { chdir ($1); }
+-
+-	unshift (@INC, 'lib');
+-
+ 	# 0x0010   Language (make not-translated lines red/yellow)
+ 	# 0x0020   Parser (dropped lines)
+ 	# 0x0040   Parser (time information)
+@@ -54,13 +50,13 @@
+ print STDERR $/, __FILE__, ': $Id: onis 82 2005-04-17 13:14:57Z octo $' if ($::DEBUG);
+ 
+ parse_argv (@ARGV);
+-read_config (get_config ('config') ? get_config ('config') : 'onis.conf');
++read_config (get_config ('config') ? get_config ('config') : '/etc/onis.conf');
+ read_config (scalar get_config ('theme')) if (get_config ('theme'));
+ 
+ my $output = get_config ('output');
+ if (!$output)
+ {
+-	$output = "reports/onis.html";
++	$output = "onis.html";
+ }
+ 
+ foreach ('Core', get_config ('plugin'))
+diff -ur trunk/onis.conf systemwide-patch/onis.conf
+--- trunk/onis.conf	2005-04-17 15:13:13.000000000 +0200
++++ systemwide-patch/onis.conf	2005-04-17 15:25:49.000000000 +0200
+@@ -158,7 +158,7 @@
+ 
+ # Sets the directory in which the storage file(s) should be kept. This is used
+ # by ``Dbm'' and ``Storable''.
+-storage_dir: "var/";
++storage_dir: "/var/lib/onis/";
+ 
+ 
+ #
+@@ -177,9 +177,9 @@
+ # Style settings. If no theme is given this might result in a lot of very
+ # weird errors, so better set one ;)
+ # Valid themes as of onis 0.7.0: light, liner, dark
+-theme: "themes/light.theme";
++theme: "/usr/share/onis/themes/light.theme";
+ 
+ # Read translations from this file.
+ # One of:
+ # english.lang german.lang norwegian.lang spanish.lang swedish.lang
+-language_file: "lang/english.lang";
++language_file: "/usr/share/onis/lang/english.lang";
