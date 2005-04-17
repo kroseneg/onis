@@ -1,0 +1,337 @@
+/*
+ * Layout by ``Liner'' (Mail unknown)
+ */
+
+a
+{
+	color: #333399;
+	text-decoration: none;
+	font-weight: normal;
+}
+
+a:hover
+{
+	text-decoration: underline;
+}
+a:visited
+{
+	font-weight: normal;
+}
+body
+{
+	background-color: #efefef;
+	color: black;
+	font-family: Helvetica, Verdana, Arial, sans-serif; 
+	font-size: small;
+}
+
+div.msie_hack 
+{ 
+	text-align: center; 
+}
+
+em
+{
+	font-style: normal;
+	font-weight: Bold;
+}
+
+h1, h2
+{
+	font-size: large;
+}
+
+img
+{
+	border: none;
+}
+
+span.small
+{
+	font-size: smaller;
+}
+
+table
+{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+table.big_ranking img
+{
+	height: 15px;
+	border: none;
+}
+
+table.big_ranking td.bar
+{
+	font-size: smaller;
+}
+
+table.big_ranking td.bar img.first
+{
+	border: none;
+}
+
+table.big_ranking td.bar img.last
+{
+	border: none;
+}
+
+table.big_ranking td.image img
+{
+	width: auto;
+	height: auto;
+	width: 50px;
+	height: 50px;
+
+}
+
+table.conversations
+{
+	border-collapse: collapse;
+}
+
+table.conversations td
+{
+	width: 50%;
+}
+
+table.conversations td.bar img
+{
+	display: inline;
+	height: 8px;
+}
+
+table.conversations td.left
+{
+	text-align: right;
+}
+
+table.conversations td.nick
+{
+	border-top: 2px solid #efefef;
+}
+
+table.conversations td.right
+{
+	text-align: left;
+}
+
+table.copy
+{
+	width: 100%;
+	border-top: 1px solid black;
+}
+
+table.copy span.spam
+{
+	display: none;
+}
+
+table.copy td
+{
+	background-color: transparent;
+	color: gray;
+	font-size: smaller;
+	width: 50%;
+}
+
+table.copy td.right
+{
+	text-align: right;
+}
+
+table.hours td
+{
+	text-align: center;
+}
+
+table.hours td.counter
+{
+	font-size: x-small;
+}
+
+table.hours tr.bars
+{
+	height: 130px;
+}
+
+table.hours img
+{
+	width: 15px;
+}
+
+table.legend
+{
+	width: 352px;
+	text-align: center;
+}
+
+table.legend img
+{
+	display: inline;
+	width: 50px;
+	height: 15px;
+}
+
+table.legend td
+{
+	background-color: transparent;
+	color: black;
+	width: 88px;
+	text-align: center;
+	font-size: smaller;
+}
+
+table.plugin
+{
+	width: 74ex;
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+table.userdetails
+{
+	border-collapse: collapse;
+}
+
+table.userdetails table.conversations td.nick,
+table.userdetails table.conversations td.bar
+{
+	border-top: 2px solid #efefef;
+}
+
+table.userdetails td.convpartners,
+table.userdetails td.counters,
+table.userdetails td.numbers
+{
+	vertical-align: top;
+}
+
+table.userdetails td.convpartners table
+{
+	margin-right: auto;
+	margin-left: 0px;
+}
+
+table.userdetails td.convpartners td.bar img
+{
+	height: 8px;
+}
+
+table.userdetails td.image
+{
+	vertical-align: top;
+	padding: 1ex;
+}
+
+table.userdetails td.image img
+{
+	width: 50px;
+	height: 50px;
+}
+
+table.userdetails th.nick
+{
+	border-top: 2px solid #efefef;
+	border-bottom: 2px solid #efefef;
+}
+
+table.weekdays img
+{
+	width: 10px;
+}
+
+table.weekdays tr.bars
+{
+	height: 100px;
+}
+
+table.longterm img
+{
+	width: 5px;
+}
+
+table.longterm tr.bars
+{
+	height: 100px;
+}
+
+table.userdetails table.hours img,
+table.userdetails table.weekdays img,
+table.userdetails table.longterm img
+{
+	width: 5px;
+}
+
+table.userdetails table.hours tr.bars,
+table.userdetails table.weekdays tr.bars,
+table.userdetails table.longterm tr.bars
+{
+	height: 75px;
+}
+
+td
+{
+	background-color: #f8f8f8;
+	color: black;
+	text-align: left;
+}
+
+td.bar.horizontal
+{
+	text-align: left;
+}
+
+td.bar.vertical
+{
+	color: black;
+	background-color: transparent;
+
+	padding: 0px;
+
+	text-align: center;
+	vertical-align: bottom;
+}
+
+td.bar img
+{
+	display: inline;
+}
+
+td.counter
+{
+	font-size: x-small;
+	text-align: center;
+}
+
+td.numeration
+{
+	color: black;
+	background-color: silver;
+	font-weight: bold;
+	text-align: center;
+}
+
+td.invis
+{
+	background-color: transparent;
+	color: black;
+}
+
+th
+{
+	background-color: silver;
+	color: black;
+	font-style: italic;
+	font-weight: bold;
+	font-style: italic;
+}
+
+tr.hour_row td
+{
+	color: black;
+	background-color: #f8f8f8;
+	border: none;
+}

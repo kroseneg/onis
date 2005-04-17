@@ -1,0 +1,360 @@
+/*
+ * General settings
+ */
+
+a
+{
+	color: white;
+	background-color: transparent;
+	text-decoration: none;
+	font-weight: bold;
+}
+
+a:hover
+{
+	text-decoration: underline;
+}
+
+a:visited
+{
+	color: silver;
+	background-color: transparent;
+}
+
+body
+{
+	background-color: black;
+	color: silver;
+}
+
+div.msie_hack
+{
+	text-align: center;
+}
+
+em
+{
+	font-style: normal;
+	font-weight: bold;
+}
+
+h1, h2
+{
+	text-align: center;
+}
+
+img
+{
+	border: none;
+}
+
+p
+{
+	text-align: center;
+}
+
+span.small
+{
+	font-size: smaller;
+}
+
+table
+{
+	margin-left: auto;
+	margin-right: auto;
+}
+
+td.bar img
+{
+	display: inline;
+}
+
+td.bar.horizontal
+{
+	text-align: left;
+}
+
+td.bar.vertical
+{
+	color: white;
+	background-color: transparent;
+
+	padding: 0px;
+
+	text-align: center;
+	vertical-align: bottom;
+}
+
+td.counter
+{
+	color: silver;
+	background-color: #333333;
+	font-size: x-small;
+	text-align: center;
+}
+
+td.numeration
+{
+	color: black;
+	background-color: silver;
+	font-weight: bold;
+	text-align: center;
+}
+
+/*
+ * Plugins
+ */
+table.hours tr.bars
+{
+	height: 150px;
+}
+
+table.hours img
+{
+	width: 15px;
+}
+
+/* * * */
+
+table.big_ranking td.bar img
+{
+	height: 15px;
+}
+
+table.big_ranking td.image
+{
+	padding: 1px;
+}
+
+table.big_ranking td.image img
+{
+	margin: 0px;
+	display: block;
+	width: 50px;
+	height: 50px;
+}
+
+/* * * */
+
+table.weekdays img
+{
+	width: 10px;
+}
+
+table.weekdays tr.bars
+{
+	height: 100px;
+}
+
+/* * * */
+
+table.longterm img
+{
+	width: 5px;
+}
+
+table.longterm tr.bars
+{
+	height: 100px;
+}
+
+/* * * */
+
+table.conversations
+{
+	border-collapse: collapse;
+}
+
+table.conversations td
+{
+	width: 50%;
+}
+
+table.conversations td.bar img
+{
+	display: inline;
+	height: 5px;
+}
+
+table.conversations td.left
+{
+	text-align: right;
+}
+
+table.conversations td.nick
+{
+	border-top: 2px solid black;
+}
+
+table.conversations td.right
+{
+	text-align: left;
+}
+
+/* * * */
+
+table.copy
+{
+	width: 100%;
+	border-top: 1px solid silver;
+}
+
+table.copy span.spam
+{
+	display: none;
+}
+
+table.copy td
+{
+	background-color: transparent;
+	color: gray;
+	font-size: smaller;
+	width: 50%;
+}
+
+table.copy td.right
+{
+	text-align: right;
+}
+
+table.copy td a
+{
+	color: silver;
+	background-color: transparent;
+}
+
+table.legend
+{
+	width: 500px;
+}
+
+table.legend img
+{
+	display: inline;
+}
+
+table.legend td
+{
+	background-color: transparent;
+	color: silver;
+	text-align: center;
+	width: 125px;
+	font-size: smaller;
+}
+
+table.plugin
+{
+	width: 500px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+}
+
+/* Plugin: Userdetails */
+
+table.userdetails
+{
+	border-collapse: collapse;
+}
+
+table.userdetails th.nick
+{
+	border-top: 2px solid black;
+	border-bottom: 2px solid black;
+}
+
+table.userdetails td
+{
+	vertical-align: top;
+}
+
+table.userdetails td.image
+{
+	padding: 1ex;
+}
+
+table.userdetails td.image img
+{
+	width: 50px;
+	height: 50px;
+}
+
+table.userdetails table.conversations
+{
+	margin-right: auto;
+	margin-left: 0px;
+}
+
+table.userdetails table.conversations img
+{
+	height: 5px;
+}
+
+table.userdetails table.conversations td.bar,
+table.userdetails table.conversations td.nick
+{
+	border-top: 2px solid #3b3b3b;
+}
+
+table.userdetails table.hours img,
+table.userdetails table.weekdays img,
+table.userdetails table.longterm img
+{
+	width: 5px;
+}
+
+table.userdetails table.hours tr.bars,
+table.userdetails table.weekdays tr.bars,
+table.userdetails table.longterm tr.bars
+{
+	height: 75px;
+}
+
+/* End of plugin Userdetails */
+
+td
+{
+	background-color: #333333;
+	color: silver;
+	text-align: left;
+	padding-left:  0.3ex;
+	padding-right: 0.3ex;
+}
+
+td.numeration
+{
+	background-color: silver;
+	color: black;
+	width: 15px;
+	font-weight: bold;
+	text-align: center;
+}
+
+td.image
+{
+	padding: 0px;
+	vertical-align: top;
+}
+
+td.image img
+{
+	width: auto;
+	height: auto;
+	max-width: 50px;
+	max-height: 50px;
+	margin: 0px;
+}
+
+td.invis
+{
+	background-color: transparent;
+	color: black;
+}
+
+th
+{
+	background-color: silver;
+	color: black;
+	text-align: center;
+	font-weight: bold;
+	font-style: italic;
+}

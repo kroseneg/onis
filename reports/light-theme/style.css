@@ -235,6 +235,14 @@ table.userdetails table.longterm tr.bars td.bar img
 	width: 3px;
 }
 
+table.userdetails table.conversations tr td
+{
+	color: black;
+	background-color: transparent;
+
+	border: none;
+}
+
 table.userdetails td.image
 {
 	vertical-align: top;
@@ -372,9 +380,4 @@ th
 	text-align: center;
 	font-weight: bold;
 	font-style: italic;
-}
-
-tr.hour_row td
-{
-	border: 1px solid gray;
 }
