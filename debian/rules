@@ -25,6 +25,7 @@ configure-stamp:
 	dh_testdir
 	# Add here commands to configure the package.
 
+	find . -type d -name '.svn' | xargs rm -rfv
 	patch -p1 <contrib/systemwide-patch/systemwide-patch.diff
 
 	touch configure-stamp
