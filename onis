@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 ##########################################################################
-#    onis 0.7.2                                               2005-01-21 #
+#    onis 0.8.0                                               2005-04-17 #
 #---=============--------------------------------------------------------#
 # Language: Perl                                                         #
 # Purpose:  Generating statistics                                        #
 # Input:    IRC-Logfiles                                                 #
 # Output:   One HTML file                                                #
-# Version:  0.7.2 (unstable)                                             #
+# Version:  0.8.0 (unstable)                                             #
 # License:  GPL                                                          #
 # Homepage: http://verplant.org/onis/                                    #
 # Authors:  Florian octo Forster <octo@verplant.org>                     #
@@ -49,12 +49,12 @@ if (!$VERSION)
 }
 
 our $FileInfo;
-our $PURGE_LOGS = 0;
+our $PurgeLogs = 0;
 
 print STDERR $/, __FILE__, ': $Id$' if ($::DEBUG);
 
 parse_argv (@ARGV);
-read_config (get_config ('config') ? get_config ('config') : 'config');
+read_config (get_config ('config') ? get_config ('config') : 'onis.conf');
 read_config (scalar get_config ('theme')) if (get_config ('theme'));
 
 my $output = get_config ('output');
@@ -138,12 +138,12 @@ if (get_config ('purge_logs'))
 	my $temp = lc (get_config ('purge_logs'));
 	if (($temp eq 'truncate') or ($temp eq 'shorten'))
 	{
-		$PURGE_LOGS = 1;
+		$PurgeLogs = 1;
 	}
 	elsif (($temp eq 'delete') or ($temp eq 'remove')
 			or ($temp eq 'del'))
 	{
-		$PURGE_LOGS = 2;
+		$PurgeLogs = 2;
 	}
 }
 
@@ -196,7 +196,7 @@ for (get_config ('input'))
 	}
 	
 	# truncate
-	if ($PURGE_LOGS == 1)
+	if ($PurgeLogs == 1)
 	{
 		unless (open ($logfile, '+< ' . $file))
 		{
@@ -213,7 +213,7 @@ for (get_config ('input'))
 		}
 	}
 	
-	if ($PURGE_LOGS)
+	if ($PurgeLogs)
 	{
 		unless (flock ($logfile, LOCK_EX))
 		{
@@ -265,11 +265,11 @@ for (get_config ('input'))
 		}
 	}
 
-	if ($PURGE_LOGS and (($status == 1)
+	if ($PurgeLogs and (($status == 1)
 				or ($status == 2)
 				or ($status == 3)))
 	{
-		if (($PURGE_LOGS > 1)
+		if (($PurgeLogs > 1)
 			#and (($position + 1) >= $size)
 			)
 		{
