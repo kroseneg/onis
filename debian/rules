@@ -47,8 +47,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp configure-stamp
 
-	# Add here commands to clean up after the build process.
-	#-$(MAKE) clean
+	patch -p1 -R <contrib/systemwide-patch/systemwide-patch.diff
 
 	dh_clean 
 

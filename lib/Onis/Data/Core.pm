@@ -757,8 +757,9 @@ Print the output. Should be called only once..
 
 sub print_output
 {
-	# FIXME FIXME FIXME
-	if (!get_total_lines ())
+	my ($total, $this) = get_total_lines ();
+
+	if (!$total)
 	{
 		print STDERR <<'MESSAGE';
 
