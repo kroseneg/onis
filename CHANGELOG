@@ -2,6 +2,14 @@
 ==================
 http://verplant.org/onis/
 
+  0.8.1 -
+ =========
+ - Ignoring users (using the special user-name ``ignore'') has been fixed.
+ - A manpage for onis has been written. It can be generated out of the ``onis''
+   file using pod2man.
+
+
+
   0.8.0 - All new persistency
  =============================
  - This release features a complete rewrite of the persistency-code. The

@@ -36,9 +36,7 @@ build: build-stamp
 build-stamp: configure-stamp 
 	dh_testdir
 
-	# Add here commands to compile the package.
-	#$(MAKE)
-	#docbook-to-man debian/onis.sgml > onis.1
+	pod2man -r $(egrep '^\$VERSION' onis | cut -d "'" -f 2) onis >onis.1
 
 	touch build-stamp
 
@@ -47,6 +45,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp configure-stamp
 
+	rm -f onis.1
 	patch -p1 -R <contrib/systemwide-patch/systemwide-patch.diff
 
 	dh_clean 
@@ -63,6 +62,7 @@ install: build
 	dh_install lib/Onis usr/lib/perl5/
 	dh_install lang themes usr/share/onis/
 	dh_install reports/*-theme usr/share/onis/themes/
+	dh_installman onis.1
 
 # Build architecture-independent files here.
 binary-indep: build install

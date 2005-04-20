@@ -32,12 +32,30 @@ BEGIN
 
 use strict;
 use warnings;
+use vars qw/$VERSION $REVISION/;
 
 use Onis::Config qw/get_config parse_argv read_config/;
 use File::Basename qw/dirname/;
 use Fcntl qw/:flock/;
 
-use vars qw/$VERSION $REVISION/;
+=head1 NAME
+
+onis - onis not irs stats
+
+=head1 SYNOPSIS
+
+B<onis> [I<options>] I<logfile>...
+
+=head1 DESCRIPTION
+
+onis is a script that converts IRC logfiles into an HTML statistics page. It
+provides information about daily channel usage, user activity, and channel
+trivia. It provides a configurable customization and supports Dancer,
+dircproxy, eggdrop, irssi, mIRC, and XChat logs. Persistent data (history
+files) and automatic log purging make onis applicable for a large number of
+logfiles. It also features a powerful translation infrastructure.
+
+=cut
 
 $VERSION = '';
 $REVISION = '$LastChangedRevision$';
@@ -342,3 +360,202 @@ END
 {
 	print $/ if ($::DEBUG);
 }
+
+=head1 OPTIONS
+
+=head2 Core options
+
+=over 4
+
+=item B<config>: I<file>;
+
+Load the config from this file. B<(command line only)>
+
+=item B<users_config>: I<file>;
+
+Sets the file from which to read the user configuration.
+
+=item B<language_file>: I<file>;
+
+Sets the language file/translation to use.
+
+=item B<plugin>: I<string>;
+
+Sets the plugins to load. The plugin B<Core> will always be loaded.
+
+=item B<input>: I<file>;
+
+Read and parse this file(s). B<(config file only)>
+
+=item B<logtype>: I<string>;
+
+Sets the parser to use for parsing the input file.
+
+=item B<output>: I<file>;
+
+Write the generated output to this file.
+
+=item B<overwrite>: I<bool>;
+
+Sets wether or not to overwrite the output-file if it exists.
+
+=item B<purge_logs>: "I<false>" | "I<truncate>" | "I<delete>";
+
+Sets wether logs should be truncated or even removes after they have been
+parsed.
+
+=item B<user>: I<string>;
+
+Sets the user generating the stats if it's not detected right.
+
+=item B<channel>: I<string>;
+
+Sets the name of the channel being parsed. Normally this is auto-detected.
+
+=item B<unsharp>: "I<none>" | "I<light>" | "I<medium>" | "I<hard>";
+
+Sets how to do unsharping. What each setting actually does is described in the
+readme and in L<Onis::Data::Core>.
+
+=back
+
+=head2 Appearance
+
+=over 4
+
+=item B<theme>: I<file>;
+
+Theme file to load.
+
+=item B<stylesheet>: I<file>;
+
+Sets the stylesheet (.css file) to use. This should be set in a theme file.
+
+=item B<color_codes>: I<bool>;
+
+Wether to print mIRC color-codes or filter them.
+
+=item B<display_images>: I<bool>;
+
+Sets if user-images should be displayed.
+
+=item B<default_image>: I<file>;
+
+Sets the default image to use if no user-defined image is available.
+
+=item B<display_lines>: "I<none>" | "I<number>" | "I<bar>" | "I<both>";
+
+=item B<display_words>: "I<none>" | "I<number>" | "I<bar>" | "I<both>";
+
+=item B<display_chars>: "I<none>" | "I<number>" | "I<bar>" | "I<both>";
+
+Sets if and how lines, words and/or characters should be displayed.
+
+=item B<sort_by>: "I<lines>" | "I<words>" | "I<chars>";
+
+Sets wether to sort by lines, words or characters written.
+
+=item B<display_times>: I<bool>;
+
+Wether or not to display a fixed width bar that shows when a user is most
+active.
+
+=item B<bar_height>: I<number>;
+
+=item B<bar_width>: I<number>;
+
+Sets the width of horizontal bars and the height of vertical bars.
+
+=item B<horizontal_images>: I<file>, I<file>, I<file>, I<file>;
+
+=item B<vertical_images>:   I<file>, I<file>, I<file>, I<file>;
+
+Sets the images to use for horizontal and vertical bars. This should be used in
+the theme-file.
+
+=item B<encoding>: I<string>;
+
+Sets the encoding for the output file. This is merely the string that will be
+included in the generated HTML file.
+
+=item B<public_page>: I<bool>;
+
+Wether or not this is a public page. Public pages may be linked on the onis
+homepage at some point in the fututre..
+
+=back
+
+=head2 Storage / Persistency
+
+=over 4
+
+=item B<storage_module>: I<string>;
+
+Sets the storage-module to use.
+
+=item B<storage_dir>: I<directory>;
+
+Sets the directory to store persistency information under.
+
+=item B<storage_file>: I<file>;
+
+Sets the file to write persistency data to, if applicable by the
+storage-module.
+
+=back
+
+=head2 Plugins
+
+=over 4
+
+=item B<min_word_length>: I<number>;
+
+Substring containing only word-characters needs to be this long to be
+considered a word.
+
+=item B<plugin_max>: I<number>;
+
+Sets the number of "most referenced nicks", "most used words" and the like to
+be displayed. This option will be removed in the future.
+
+=item B<longlines>: I<number>;
+
+=item B<shortlines>: I<number>;
+
+The number of lines in the big and the small table. While in the big table one
+line is dedicated for one person the small table displays six persons per line.
+
+=item B<quote_cache_size>: I<number>;
+
+Sets how many quotes are to be cached for each nick. At the end of the run one
+of the quotes in the cache will be chosen at random and displayed.
+
+=item B<quote_min>: I<number>;
+
+=item B<quote_max>: I<number>;
+
+Sets the minimum and maximum length of a quote. Too short quotes may be not
+very typical for a person, too long quotes may clutter the layout.
+
+=item B<soliloquies_count>: I<number>;
+
+Sets how many lines without interruption are considered a soliloquy.
+
+=item B<longterm_days>: I<number>;
+
+=item B<userdetails_longterm_days>: I<number>;
+
+Sets the number of days shown in the longterm-plugin (or the longter-section of
+the userdetails-plugin).
+
+=item B<ignore_words>: I<number>;
+
+The Words-Plugin will ignore words with less than this characters.
+
+=back
+
+=head1 AUTHOR
+
+Florian Forster E<lt>octo at verplant.orgE<gt>
+
+=cut

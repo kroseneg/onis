@@ -399,6 +399,8 @@ sub calculate_nicks
 			my $ident = $_;
 			my $name = chatter_to_name ("$this_nick!$ident");
 			my $num = $nicks->{$this_nick}{$ident};
+
+			next if ($name eq 'ignore');
 			
 			$this_total += $num;
 
