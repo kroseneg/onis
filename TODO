@@ -1,3 +1,11 @@
+Release critical for 0.8.1:
+
+- Make Onis::Data::Persistent::* use ~/.onis/data as default dir
+- Unify HTML/CSS
+- Maybe rename config options. Complete manpage
+
+Other brainstorming stuff:
+
 Minor bugfix:
 [23:23] <@[charly]> nur doof wenn's 'nen nick namens "ich" gibt, mit dem reden dann alle am meisten ;)
 [23:24] <@octo> [charly]: Hm, und der hat auch 100 Zeilen geschrieben?
@@ -8,10 +16,6 @@ Minor bugfix:
 
 - the config reader could generate a warning if you
 have a newline before a semicolon on a non-whitespace line?
-
--  remove the
-elements from the bar where there is 0 activity - for example, the bar on the
-number of lines...
 
 - Finally, the other thing I think would be useful would be to exagerate the
 bottom bar on the main table; its too small to see when the user is on at the
