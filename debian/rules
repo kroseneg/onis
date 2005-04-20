@@ -26,7 +26,7 @@ configure-stamp:
 	# Add here commands to configure the package.
 
 	find . -type d -name '.svn' | xargs rm -rfv
-	patch -p1 <contrib/systemwide-patch/systemwide-patch.diff
+	#patch -p1 <contrib/systemwide-patch/systemwide-patch.diff
 
 	touch configure-stamp
 
@@ -36,7 +36,7 @@ build: build-stamp
 build-stamp: configure-stamp 
 	dh_testdir
 
-	pod2man -r $(egrep '^\$VERSION' onis | cut -d "'" -f 2) onis >onis.1
+	pod2man -r "$(egrep '^\$VERSION' onis | cut -d \' -f 2)" onis >onis.1
 
 	touch build-stamp
 
