@@ -35,8 +35,16 @@ onis' main directory..
 
 =cut
 
-our $DBMDirectory = get_config ('storage_dir') || 'var';
-$DBMDirectory =~ s#/$##g;
+our $DBMDirectory = 'var';
+if (get_config ('storage_dir'))
+{
+	$DBMDirectory = get_config ('storage_dir');
+}
+elsif ($ENV{'HOME'})
+{
+	$DBMDirectory = $ENV{'HOME'} . '/.onis/data';
+}
+$DBMDirectory =~ s#/+$##g;
 
 if (!$DBMDirectory or !-d $DBMDirectory)
 {

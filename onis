@@ -89,7 +89,6 @@ foreach ('Core', get_config ('plugin'))
 
 if (!get_config ('input'))
 {
-	# TODO: Make a complete (!) lsit..
 	print STDERR <<EOF;
 
 Usage: $0 [options] <logfile> [logfile logfile ..]
@@ -103,7 +102,7 @@ Options:
 				See 'config' for a complete list.
 	--user <name>		Define's the generator's name.
 
-For a full list of all options please read the ``config'' file.
+For a full list of all options please read the onis(1) manpage.
 EOF
 	exit (1);
 }
@@ -406,7 +405,8 @@ parsed.
 
 =item B<user>: I<string>;
 
-Sets the user generating the stats if it's not detected right.
+Sets the user that created the page. Defaults to the environment variable
+B<USER> or "onis", if it is not set.
 
 =item B<channel>: I<string>;
 
@@ -429,11 +429,14 @@ Theme file to load.
 
 =item B<stylesheet>: I<file>;
 
-Sets the stylesheet (.css file) to use. This should be set in a theme file.
+Sets the stylesheet to use. This is included in the HTML-file as-is, so you
+have to take care of absolute/relative paths yourself..
 
 =item B<color_codes>: I<bool>;
 
-Wether to print mIRC color-codes or filter them.
+Wether or not to print the color codes (introduced by mIRC, used by idiots and
+ignored by the rest) in the generated HTML-file. Of course this defaults to not
+print the codes..
 
 =item B<display_images>: I<bool>;
 
@@ -475,8 +478,8 @@ the theme-file.
 
 =item B<encoding>: I<string>;
 
-Sets the encoding for the output file. This is merely the string that will be
-included in the generated HTML file.
+Sets the encoding to include in the HTML-file. If you don't know what this is,
+don't change it..
 
 =item B<public_page>: I<bool>;
 

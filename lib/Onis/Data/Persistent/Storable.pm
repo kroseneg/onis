@@ -39,8 +39,15 @@ Sets the directory in which B<storage_file> can be found.
 =cut
 
 our $StorageFile = get_config ('storage_file') || 'storage.dat';
-our $StorageDir  = get_config ('storage_dir')  || 'var';
-
+our $StorageDir = 'var';
+if (get_config ('storage_dir'))
+{
+	$StorageDir = get_config ('storage_dir');
+}
+elsif ($ENV{'HOME'})
+{
+	$StorageDir = $ENV{'HOME'} . '/.onis/data';
+}
 $StorageDir =~ s#/+$##;
 
 if (!-d $StorageDir)
