@@ -1,6 +1,5 @@
 Release critical for 0.8.1:
 
-- Make Onis::Data::Persistent::* use ~/.onis/data as default dir
 - Unify HTML/CSS
 - Maybe rename config options. Complete manpage
 
