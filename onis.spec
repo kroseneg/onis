@@ -37,7 +37,8 @@ mkdir -p $RPM_BUILD_ROOT%_bindir \
          $RPM_BUILD_ROOT/etc/onis \
          $RPM_BUILD_ROOT%{perllibdir} \
          $RPM_BUILD_ROOT%{_datadir}/onis \
-	 $RPM_BUILD_ROOT/var/lib/onis
+	 $RPM_BUILD_ROOT/var/lib/onis \
+	 $RPM_BUILD_ROOT%{_mandir}/man1
 
 cp onis $RPM_BUILD_ROOT%{_bindir}/
 cp onis.conf users.conf $RPM_BUILD_ROOT/etc/onis/
@@ -62,7 +63,7 @@ rm -fr $RPM_BUILD_ROOT
 %{_bindir}/onis
 %{perllibdir}/Onis
 %{_datadir}/onis
-%{_mandir}/man1/onis.1
+%{_mandir}/man1/*
 
 %changelog
 * Sat Apr 23 2005 Florian Forster <octo@verplant.org>
