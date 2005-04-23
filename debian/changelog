@@ -1,6 +1,13 @@
+onis (0.8.0-2) unstable; urgency=low
+
+  * Added generation of manpage.
+  * Applying of patch now more intelligent.
+
+ -- Florian Forster <octo@verplant.org>  Thu, 23 Apr 2005 10:32:28 +0100
+
 onis (0.8.0-1) unstable; urgency=low
 
-  * New upstream version,
+  * New upstream version.
 
  -- Florian Forster <octo@verplant.org>  Thu, 17 Apr 2005 15:03:36 +0100
 

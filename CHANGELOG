@@ -2,11 +2,15 @@
 ==================
 http://verplant.org/onis/
 
-  0.8.1 -
- =========
+  0.8.1 - Bugfixing and other corrections
+ =========================================
  - Ignoring users (using the special user-name ``ignore'') has been fixed.
  - A manpage for onis has been written. It can be generated out of the ``onis''
    file using pod2man.
+ - All bars now use relative scaling, i.e. the stylesheets have more control
+   about their size.
+ - Packaging information for RPM-based distributions and Debian have been
+   added.
 
 
 

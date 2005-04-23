@@ -27,6 +27,9 @@ logfiles. It also features a powerful translation infrastructure.
 %setup
 patch -p1 <contrib/systemwide-patch/systemwide-patch.diff
 
+%build
+pod2man -r "$(egrep '^\$VERSION' onis | cut -d \' -f 2)" onis >onis.1
+
 %install
 rm -fr $RPM_BUILD_ROOT
 
@@ -41,11 +44,13 @@ cp onis.conf users.conf $RPM_BUILD_ROOT/etc/onis/
 cp -r lib/Onis $RPM_BUILD_ROOT%{perllibdir}/
 cp -r themes lang $RPM_BUILD_ROOT%{_datadir}/onis/
 cp -r reports/*-theme $RPM_BUILD_ROOT%{_datadir}/onis/themes/
+cp onis.1 $RPM_BUILD_ROOT%{_mandir}/man1/
 
 chmod 0755 $RPM_BUILD_ROOT%_bindir/onis
 chmod -R 0644 $RPM_BUILD_ROOT/etc/onis/*
 chmod -R a-w $RPM_BUILD_ROOT%{perllibdir}/Onis
 chmod -R a-w $RPM_BUILD_ROOT%{_datadir}/onis
+chmod -R a-w $RPM_BUILD_ROOT%{_mandir}/man1/onis.1
 
 %clean
 rm -fr $RPM_BUILD_ROOT
@@ -57,8 +62,11 @@ rm -fr $RPM_BUILD_ROOT
 %{_bindir}/onis
 %{perllibdir}/Onis
 %{_datadir}/onis
-%dir /var/lib/onis
+%{_mandir}/man1/onis.1
 
 %changelog
+* Sat Apr 23 2005 Florian Forster <octo@verplant.org>
+- Added generation of manpage.
+
 * Mon Apr 18 2005 Florian Forster <octo@verplant.org>
 - Initial build.
