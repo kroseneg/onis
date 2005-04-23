@@ -23,15 +23,8 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	# Add here commands to configure the package.
-
-	find . -type d -name '.svn' | xargs rm -rfv
-
-	if [ ! -e patch-stamp ]; then
-		patch -p1 <contrib/systemwide-patch/systemwide-patch.diff
-		touch patch-stamp
-	fi
-
+	find . -type d -name '.svn' | xargs rm -rf
+	if [ ! -e patch-stamp ]; then patch -p1 <contrib/systemwide-patch/systemwide-patch.diff; touch patch-stamp; fi
 	touch configure-stamp
 
 
@@ -39,23 +32,15 @@ build: build-stamp
 
 build-stamp: configure-stamp 
 	dh_testdir
-
 	pod2man -r "$(egrep '^\$VERSION' onis | cut -d \' -f 2)" onis >onis.1
-
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-
-	[ -e onis.1 ] && rm -f onis.1
-
-	if [ -e patch-stamp ]; then
-		patch -p1 -R <contrib/systemwide-patch/systemwide-patch.diff
-		rm -f patch-stamp
-	fi
-
+	if [ -e onis.1 ]; then rm -f onis.1; fi
+	if [ -e patch-stamp ]; then patch -p1 -R <contrib/systemwide-patch/systemwide-patch.diff; rm -f patch-stamp; fi
 	dh_clean 
 
 install: build
