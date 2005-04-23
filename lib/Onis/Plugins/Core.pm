@@ -693,18 +693,21 @@ EOF
 	}
 	if ($DISPLAY_LINES ne 'NONE')
 	{
+		my $span = $DISPLAY_LINES eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Lines');
-		print $fh "    <th>$trans</th>\n";
+		print $fh "    <th$span>$trans</th>\n";
 	}
 	if ($DISPLAY_WORDS ne 'NONE')
 	{
+		my $span = $DISPLAY_WORDS eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Words');
-		print $fh "    <th>$trans</th>\n";
+		print $fh "    <th$span>$trans</th>\n";
 	}
 	if ($DISPLAY_CHARS ne 'NONE')
 	{
+		my $span = $DISPLAY_CHARS eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Characters');
-		print $fh "    <th>$trans</th>\n";
+		print $fh "    <th$span>$trans</th>\n";
 	}
 	if ($DISPLAY_TIMES)
 	{
@@ -808,50 +811,44 @@ EOF
 		
 			if ($DISPLAY_LINES ne 'NONE')
 			{
-				print $fh qq#    <td class="bar">#;
+				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'NUMBER'))
+				{
+					my $num = $NickData->{$nick}{'lines_total'};
+					print $fh qq(    <td class="counter">$num</td>\n);
+				}
 				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'BAR'))
 				{
 					my $code = bar ($max_lines, $NickData->{$nick}{'lines'});
-					print $fh $code;
+					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
-				print $fh '&nbsp;' if ($DISPLAY_LINES eq 'BOTH');
-				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'NUMBER'))
-				{
-					print $fh $NickData->{$nick}{'lines_total'};
-				}
-				print $fh "</td>\n";
 			}
 
 			if ($DISPLAY_WORDS ne 'NONE')
 			{
-				print $fh qq#    <td class="bar">#;
+				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'NUMBER'))
+				{
+					my $num = $NickData->{$nick}{'words_total'};
+					print $fh qq(    <td class="counter">$num</td>\n);
+				}
 				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'BAR'))
 				{
 					my $code = bar ($max_words, $NickData->{$nick}{'words'});
-					print $fh $code;
+					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
-				print $fh '&nbsp;' if ($DISPLAY_WORDS eq 'BOTH');
-				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'NUMBER'))
-				{
-					print $fh $NickData->{$nick}{'words_total'};
-				}
-				print $fh "</td>\n";
 			}
 
 			if ($DISPLAY_CHARS ne 'NONE')
 			{
-				print $fh qq#    <td class="bar">#;
+				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'NUMBER'))
+				{
+					my $num = $NickData->{$nick}{'chars_total'};
+					print $fh qq(    <td class="counter">$num</td>\n);
+				}
 				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'BAR'))
 				{
 					my $code = bar ($max_chars, $NickData->{$nick}{'chars'});
-					print $fh $code;
+					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
-				print $fh '&nbsp;' if ($DISPLAY_CHARS eq 'BOTH');
-				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'NUMBER'))
-				{
-					print $fh $NickData->{$nick}{'chars_total'};
-				}
-				print $fh "</td>\n";
 			}
 
 			if ($DISPLAY_TIMES)
@@ -958,21 +955,16 @@ sub bar
 	confess () unless (ref ($source) eq 'ARRAY');
 
 	# BAR_WIDTH is a least 10
-	my $max_width = $BAR_WIDTH - 4;
-	my $factor = 1;
 	my $retval = '';
 
 	my $i;
 	my $j;
 
-	if (!$max_num) { return ($retval); }
-	$factor = $max_width / $max_num;
-
 	for ($i = 0; $i < 4; $i++)
 	{
 		my $sum = 0;
-		my $width = 1;
 		my $img = $H_IMAGES[$i];
+		my $width;
 
 		for ($j = 0; $j < 6; $j++)
 		{
@@ -980,9 +972,9 @@ sub bar
 			$sum += $source->[$hour];
 		}
 
-		$width += int (0.5 + ($sum * $factor));
+		$width = sprintf ("%.2f", 95 * $sum / $max_num);
 		
-		$retval .= qq#<img src="$img" style="width: # . $width . q#px"#;
+		$retval .= qq#<img src="$img" style="width: $width%;"#;
 		if ($i == 0) { $retval .= qq# class="first"#; }
 		elsif ($i == 3) { $retval .= qq# class="last"#; }
 		$retval .= qq( alt="$sum" />);
