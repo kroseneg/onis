@@ -66,10 +66,10 @@ if (!$VERSION)
 	$VERSION =~ s/^\D*(\d+).*/r$1/;
 }
 
+print STDERR $/, __FILE__, ': $Id$' if ($::DEBUG);
+
 our $FileInfo;
 our $PurgeLogs = 0;
-
-print STDERR $/, __FILE__, ': $Id$' if ($::DEBUG);
 
 parse_argv (@ARGV);
 read_config (get_config ('config') ? get_config ('config') : 'onis.conf');
@@ -462,12 +462,6 @@ Sets wether to sort by lines, words or characters written.
 
 Wether or not to display a fixed width bar that shows when a user is most
 active.
-
-=item B<bar_height>: I<number>;
-
-=item B<bar_width>: I<number>;
-
-Sets the width of horizontal bars and the height of vertical bars.
 
 =item B<horizontal_images>: I<file>, I<file>, I<file>, I<file>;
 
