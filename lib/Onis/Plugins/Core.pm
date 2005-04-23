@@ -55,20 +55,17 @@ our $SortedNicklist = [];
 
 our $NicksInMainTable = {};
 
-our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
+our @HorizontalImages = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 our $QuoteCacheSize = 10;
 our $QuoteMin = 30;
 our $QuoteMax = 80;
-our $WORD_LENGTH = 5;
-our $SORT_BY = 'LINES';
-our $DISPLAY_LINES = 'BOTH';
-our $DISPLAY_WORDS = 'NONE';
-our $DISPLAY_CHARS = 'NONE';
-our $DISPLAY_TIMES = 0;
-our $DISPLAY_IMAGES = 0;
-our $DEFAULT_IMAGE = '';
-our $BAR_HEIGHT = 130;
-our $BAR_WIDTH  = 100;
+our $SortBy = 'LINES';
+our $DisplayLines = 'BOTH';
+our $DisplayWords = 'NONE';
+our $DisplayChars = 'NONE';
+our $DisplayTimes = 0;
+our $DisplayImages = 0;
+our $DefaultImage = '';
 our $LongLines  = 50;
 our $ShortLines = 10;
 
@@ -114,20 +111,6 @@ if (get_config ('quote_max'))
 	$QuoteMax = $tmp if ($tmp);
 }
 
-=item B<min_word_length>: I<5>
-
-Sets how many word-characters in a row are considered to be a word. Or, in more
-normal terms: Sets the minimum length for words..
-
-=cut
-
-if (get_config ('min_word_length'))
-{
-	my $tmp = get_config ('min_word_length');
-	$tmp =~ s/\D//g;
-	$WORD_LENGTH = $tmp if ($tmp);
-}
-
 =item B<display_lines>: I<BOTH>
 
 Choses wether to display B<lines> as I<BAR>, I<NUMBER>, I<BOTH> or not at all
@@ -142,7 +125,7 @@ if (get_config ('display_lines'))
 
 	if (($tmp eq 'NONE') or ($tmp eq 'BAR') or ($tmp eq 'NUMBER') or ($tmp eq 'BOTH'))
 	{
-		$DISPLAY_LINES = $tmp;
+		$DisplayLines = $tmp;
 	}
 	else
 	{
@@ -165,7 +148,7 @@ if (get_config ('display_words'))
 
 	if (($tmp eq 'NONE') or ($tmp eq 'BAR') or ($tmp eq 'NUMBER') or ($tmp eq 'BOTH'))
 	{
-		$DISPLAY_WORDS = $tmp;
+		$DisplayWords = $tmp;
 	}
 	else
 	{
@@ -188,7 +171,7 @@ if (get_config ('display_chars'))
 
 	if (($tmp eq 'NONE') or ($tmp eq 'BAR') or ($tmp eq 'NUMBER') or ($tmp eq 'BOTH'))
 	{
-		$DISPLAY_CHARS = $tmp;
+		$DisplayChars = $tmp;
 	}
 	else
 	{
@@ -211,11 +194,11 @@ if (get_config ('display_times'))
 
 	if ($tmp =~ m/true|on|yes/i)
 	{
-		$DISPLAY_TIMES = 1;
+		$DisplayTimes = 1;
 	}
 	elsif ($tmp =~ m/false|off|no/i)
 	{
-		$DISPLAY_TIMES = 0;
+		$DisplayTimes = 0;
 	}
 	else
 	{
@@ -236,11 +219,11 @@ if (get_config ('display_images'))
 
 	if ($tmp =~ m/true|on|yes/i)
 	{
-		$DISPLAY_IMAGES = 1;
+		$DisplayImages = 1;
 	}
 	elsif ($tmp =~ m/false|off|no/i)
 	{
-		$DISPLAY_IMAGES = 0;
+		$DisplayImages = 0;
 	}
 	else
 	{
@@ -258,7 +241,7 @@ to take care of (absolute) paths yourself.
 
 if (get_config ('default_image'))
 {
-	$DEFAULT_IMAGE = get_config ('default_image');
+	$DefaultImage = get_config ('default_image');
 }
 
 =item B<sort_by>: I<LINES>
@@ -276,7 +259,7 @@ if (get_config ('sort_by'))
 
 	if (($tmp eq 'LINES') or ($tmp eq 'WORDS') or ($tmp eq 'CHARS'))
 	{
-		$SORT_BY = $tmp;
+		$SortBy = $tmp;
 	}
 	else
 	{
@@ -310,34 +293,8 @@ if (get_config ('horizontal_images'))
 			next;
 		}
 
-		$H_IMAGES[$i] = $tmp[$i];
+		$HorizontalImages[$i] = $tmp[$i];
 	}
-}
-
-=item B<bar_height>: I<130>
-
-Sets the height (in pixels) of the highest vertical graph.
-
-=cut
-
-if (get_config ('bar_height'))
-{
-	my $tmp = get_config ('bar_height');
-	$tmp =~ s/\D//g;
-	$BAR_HEIGHT = $tmp if ($tmp >= 10);
-}
-
-=item B<bar_width>: I<100>
-
-Sets the width (in pixels) of the widest horizontal graph.
-
-=cut
-
-if (get_config ('bar_width'))
-{
-	my $tmp = get_config ('bar_width');
-	$tmp =~ s/\D//g;
-	$BAR_WIDTH = $tmp if ($tmp >= 10);
 }
 
 =item B<longlines>: I<50>
@@ -553,7 +510,6 @@ sub activetimes
 {
 	my $max = 0;		# the most lines that were written in one hour..
 	my $total = 0;		# the total amount of lines we wrote..
-	my $factor = 0;		# used to find a bar's height
 
 	my @data = qw(0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0);
 
@@ -588,8 +544,6 @@ sub activetimes
 		$total = 1;
 		$max = 1;
 	}
-
-	$factor = (($BAR_HEIGHT - 1) / $max);
 
 	my $header = translate ('When do we actually talk here?');
 	print $fh "<h2>$header</h2>\n",
@@ -644,7 +598,7 @@ sub ranking
 
 	my $fh = get_filehandle () or die;
 
-	my $sort_field = lc ($SORT_BY);
+	my $sort_field = lc ($SortBy);
 
 	my $trans;
 
@@ -661,15 +615,15 @@ sub ranking
 	$trans = translate ('Most active nicks');
 	
 	print $fh "<h2>$trans</h2>\n";
-	if ($SORT_BY eq 'LINES')
+	if ($SortBy eq 'LINES')
 	{
 		$trans = translate ('Nicks sorted by numbers of lines written');
 	}
-	elsif ($SORT_BY eq 'WORDS')
+	elsif ($SortBy eq 'WORDS')
 	{
 		$trans = translate ('Nicks sorted by numbers of words written');
 	}
-	else # ($SORT_BY eq 'CHARS')
+	else # ($SortBy eq 'CHARS')
 	{
 		$trans = translate ('Nicks sorted by numbers of characters written');
 	}
@@ -681,7 +635,7 @@ sub ranking
   <tr>
     <td class="invis">&nbsp;</td>
 EOF
-	if ($DISPLAY_IMAGES)
+	if ($DisplayImages)
 	{
 		$trans = translate ('Image');
 		print $fh "    <th>$trans</th>\n";
@@ -691,25 +645,25 @@ EOF
 		$trans = translate ('Nick');
 		print $fh "    <th>$trans</th>\n";
 	}
-	if ($DISPLAY_LINES ne 'NONE')
+	if ($DisplayLines ne 'NONE')
 	{
-		my $span = $DISPLAY_LINES eq 'BOTH' ? ' colspan="2"' : '';
+		my $span = $DisplayLines eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Lines');
 		print $fh "    <th$span>$trans</th>\n";
 	}
-	if ($DISPLAY_WORDS ne 'NONE')
+	if ($DisplayWords ne 'NONE')
 	{
-		my $span = $DISPLAY_WORDS eq 'BOTH' ? ' colspan="2"' : '';
+		my $span = $DisplayWords eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Words');
 		print $fh "    <th$span>$trans</th>\n";
 	}
-	if ($DISPLAY_CHARS ne 'NONE')
+	if ($DisplayChars ne 'NONE')
 	{
-		my $span = $DISPLAY_CHARS eq 'BOTH' ? ' colspan="2"' : '';
+		my $span = $DisplayChars eq 'BOTH' ? ' colspan="2"' : '';
 		$trans = translate ('Number of Characters');
 		print $fh "    <th$span>$trans</th>\n";
 	}
-	if ($DISPLAY_TIMES)
+	if ($DisplayTimes)
 	{
 		$trans = translate ('When?');
 		print $fh "    <th>$trans</th>\n";
@@ -765,11 +719,11 @@ EOF
 			print $fh "  <tr>\n",
 			qq#    <td class="numeration"># . $linescount . "</td>\n";
 
-			if ($DISPLAY_IMAGES)
+			if ($DisplayImages)
 			{
-				if ($DEFAULT_IMAGE and !$image)
+				if ($DefaultImage and !$image)
 				{
-					$image = $DEFAULT_IMAGE;
+					$image = $DefaultImage;
 				}
 				
 				print $fh qq#    <td class="image">#;
@@ -809,52 +763,52 @@ EOF
 				print $fh qq#$print</td>\n#;
 			}
 		
-			if ($DISPLAY_LINES ne 'NONE')
+			if ($DisplayLines ne 'NONE')
 			{
-				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'NUMBER'))
+				if (($DisplayLines eq 'BOTH') or ($DisplayLines eq 'NUMBER'))
 				{
 					my $num = $NickData->{$nick}{'lines_total'};
 					print $fh qq(    <td class="counter">$num</td>\n);
 				}
-				if (($DISPLAY_LINES eq 'BOTH') or ($DISPLAY_LINES eq 'BAR'))
+				if (($DisplayLines eq 'BOTH') or ($DisplayLines eq 'BAR'))
 				{
 					my $code = bar ($max_lines, $NickData->{$nick}{'lines'});
 					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
 			}
 
-			if ($DISPLAY_WORDS ne 'NONE')
+			if ($DisplayWords ne 'NONE')
 			{
-				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'NUMBER'))
+				if (($DisplayWords eq 'BOTH') or ($DisplayWords eq 'NUMBER'))
 				{
 					my $num = $NickData->{$nick}{'words_total'};
 					print $fh qq(    <td class="counter">$num</td>\n);
 				}
-				if (($DISPLAY_WORDS eq 'BOTH') or ($DISPLAY_WORDS eq 'BAR'))
+				if (($DisplayWords eq 'BOTH') or ($DisplayWords eq 'BAR'))
 				{
 					my $code = bar ($max_words, $NickData->{$nick}{'words'});
 					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
 			}
 
-			if ($DISPLAY_CHARS ne 'NONE')
+			if ($DisplayChars ne 'NONE')
 			{
-				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'NUMBER'))
+				if (($DisplayChars eq 'BOTH') or ($DisplayChars eq 'NUMBER'))
 				{
 					my $num = $NickData->{$nick}{'chars_total'};
 					print $fh qq(    <td class="counter">$num</td>\n);
 				}
-				if (($DISPLAY_CHARS eq 'BOTH') or ($DISPLAY_CHARS eq 'BAR'))
+				if (($DisplayChars eq 'BOTH') or ($DisplayChars eq 'BAR'))
 				{
 					my $code = bar ($max_chars, $NickData->{$nick}{'chars'});
 					print $fh qq(    <td class="bar horizontal">$code</td>\n);
 				}
 			}
 
-			if ($DISPLAY_TIMES)
+			if ($DisplayTimes)
 			{
 				my $code = bar ($NickData->{$nick}{'chars_total'}, $NickData->{$nick}{'chars'});
-				print $fh qq#    <td class="bar">$code</td>\n#;
+				print $fh qq#    <td class="bar horizontal">$code</td>\n#;
 			}
 
 			print $fh qq#    <td class="quote">$quote</td>\n#,
@@ -876,15 +830,15 @@ EOF
 			my $col_in_this_table = ($linescount - $LongLines - 1) % 6;
 
 			my $total = 0;
-			if ($SORT_BY eq 'LINES')
+			if ($SortBy eq 'LINES')
 			{
 				$total = $NickData->{$nick}{'lines_total'};
 			}
-			elsif ($SORT_BY eq 'WORDS')
+			elsif ($SortBy eq 'WORDS')
 			{
 				$total = $NickData->{$nick}{'words_total'};
 			}
-			else # ($SORT_BY eq 'CHARS')
+			else # ($SortBy eq 'CHARS')
 			{
 				$total = $NickData->{$nick}{'chars_total'};
 			}
@@ -954,7 +908,6 @@ sub bar
 
 	confess () unless (ref ($source) eq 'ARRAY');
 
-	# BAR_WIDTH is a least 10
 	my $retval = '';
 
 	my $i;
@@ -963,7 +916,7 @@ sub bar
 	for ($i = 0; $i < 4; $i++)
 	{
 		my $sum = 0;
-		my $img = $H_IMAGES[$i];
+		my $img = $HorizontalImages[$i];
 		my $width;
 
 		for ($j = 0; $j < 6; $j++)

@@ -66,25 +66,18 @@ table.big_ranking img
 table.big_ranking td.bar
 {
 	font-size: smaller;
+	width: 100px;
 }
 
-table.big_ranking td.bar img.first
+table.big_ranking td.counter
 {
-	border: none;
-}
-
-table.big_ranking td.bar img.last
-{
-	border: none;
+	text-align: right;
 }
 
 table.big_ranking td.image img
 {
-	width: auto;
-	height: auto;
 	width: 50px;
 	height: 50px;
-
 }
 
 table.conversations

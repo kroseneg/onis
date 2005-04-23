@@ -540,6 +540,13 @@ of the quotes in the cache will be chosen at random and displayed.
 Sets the minimum and maximum length of a quote. Too short quotes may be not
 very typical for a person, too long quotes may clutter the layout.
 
+=item B<conversations_number>: I<number>;
+
+=item B<userdetails_conversations_number>: I<number>;
+
+Number of conversations partners to include in the output (or in the
+conversations section of the userdetails plugin).
+
 =item B<soliloquies_count>: I<number>;
 
 Sets how many lines without interruption are considered a soliloquy.
@@ -554,6 +561,10 @@ the userdetails-plugin).
 =item B<ignore_words>: I<number>;
 
 The Words-Plugin will ignore words with less than this characters.
+
+=item B<userdetails_number>: I<number>;
+
+The number of nicks to print userdetails for.
 
 =back
 

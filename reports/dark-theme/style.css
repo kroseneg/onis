@@ -116,9 +116,19 @@ table.hours img
 
 /* * * */
 
+table.big_ranking td.bar
+{
+	width: 100px;
+}
+
 table.big_ranking td.bar img
 {
 	height: 15px;
+}
+
+table.big_ranking td.counter
+{
+	text-align: right;
 }
 
 table.big_ranking td.image

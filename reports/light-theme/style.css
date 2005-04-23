@@ -69,6 +69,19 @@ table.big_ranking img
 	height: 10px;
 }
 
+table.big_ranking td.bar
+{
+	width: 100px;
+}
+
+table.big_ranking td.counter
+{
+	background-color: #f8f8f8;
+	color: black;
+	border: none;
+	text-align: right;
+}
+
 table.big_ranking td.image img,
 table.userdetails td.image img
 {

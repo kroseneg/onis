@@ -16,44 +16,30 @@ use Onis::Plugins::Conversations (qw(get_conversations));
 use Onis::Plugins::Bignumbers (qw(get_bignumbers));
 use Onis::Plugins::Interestingnumbers (qw(get_interestingnumbers));
 
-our $DISPLAY_IMAGES = 0;
-our $DEFAULT_IMAGE = '';
+our $DisplayImages = 0;
+our $DefaultImage = '';
 
 register_plugin ('OUTPUT', \&output);
 
-our $SORT_BY = 'lines';
-if (get_config ('sort_by'))
+our $NumUserdetails = 10;
+if (get_config ('userdetails_number'))
 {
-	my $tmp = get_config ('sort_by');
-	$tmp = lc ($tmp);
-
-	if (($tmp eq 'lines') or ($tmp eq 'words') or ($tmp eq 'chars'))
-	{
-		$SORT_BY = $tmp;
-	}
-	else
-	{
-		# The Core plugin already complained about this..
-	}
-}
-our $PLUGIN_MAX = 10;
-if (get_config ('plugin_max'))
-{
-	my $tmp = get_config ('plugin_max');
+	my $tmp = get_config ('userdetails_number');
 	$tmp =~ s/\D//g;
-	$PLUGIN_MAX = $tmp if ($tmp);
+	$NumUserdetails = $tmp if ($tmp);
 }
+
 if (get_config ('display_images'))
 {
 	my $tmp = get_config ('display_images');
 
 	if ($tmp =~ m/true|on|yes/i)
 	{
-		$DISPLAY_IMAGES = 1;
+		$DisplayImages = 1;
 	}
 	elsif ($tmp =~ m/false|off|no/i)
 	{
-		$DISPLAY_IMAGES = 0;
+		$DisplayImages = 0;
 	}
 	else
 	{
@@ -63,10 +49,10 @@ if (get_config ('display_images'))
 }
 if (get_config ('default_image'))
 {
-	$DEFAULT_IMAGE = get_config ('default_image');
+	$DefaultImage = get_config ('default_image');
 }
 
-our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
+our @HorizontalImages = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 if (get_config ('horizontal_images'))
 {
 	my @tmp = get_config ('horizontal_images');
@@ -85,11 +71,11 @@ if (get_config ('horizontal_images'))
 			next;
 		}
 
-		$H_IMAGES[$i] = $tmp[$i];
+		$HorizontalImages[$i] = $tmp[$i];
 	}
 }
 
-our @V_IMAGES = qw#images/ver0n.png images/ver1n.png images/ver2n.png images/ver3n.png#;
+our @VerticalImages = qw#images/ver0n.png images/ver1n.png images/ver2n.png images/ver3n.png#;
 if (get_config ('vertical_images'))
 {
 	my @tmp = get_config ('vertical_images');
@@ -108,25 +94,16 @@ if (get_config ('vertical_images'))
 			next;
 		}
 
-		$V_IMAGES[$i] = $tmp[$i];
+		$VerticalImages[$i] = $tmp[$i];
 	}
 }
 
-our $BAR_HEIGHT = 130;
-if (get_config ('bar_height'))
+our $ConversationsNumber = 10;
+if (get_config ('userdetails_conversations_number'))
 {
-	my $tmp = get_config ('bar_height');
+	my $tmp = get_config ('userdetails_conversations_number');
 	$tmp =~ s/\D//g;
-	$BAR_HEIGHT = $tmp if ($tmp >= 10);
-}
-#$BAR_HEIGHT = int ($BAR_HEIGHT / 2);
-
-our $BAR_WIDTH  = 100;
-if (get_config ('bar_width'))
-{
-	my $tmp = get_config ('bar_width');
-	$tmp =~ s/\D//g;
-	$BAR_WIDTH = $tmp if ($tmp >= 10);
+	$ConversationsNumber = $tmp if ($tmp);
 }
 
 our $LongtermDays = 7;
@@ -159,7 +136,7 @@ sub output
 	my @nicks = @$nicks_ref;
 	my $nick_data = {};
 
-	splice (@nicks, $PLUGIN_MAX) if (scalar (@nicks) > $PLUGIN_MAX);
+	splice (@nicks, $NumUserdetails) if (scalar (@nicks) > $NumUserdetails);
 
 	for (@nicks)
 	{
@@ -214,7 +191,7 @@ sub output
 
 	print $fh qq#<table class="plugin userdetails">\n#,
 	qq#  <tr>\n#,
-	qq#    <th colspan="#, $DISPLAY_IMAGES ? 4 : 3, qq#">$trans</th>\n#,
+	qq#    <th colspan="#, $DisplayImages ? 4 : 3, qq#">$trans</th>\n#,
 	qq#  </tr>\n#;
 
 	for (@nicks)
@@ -225,18 +202,18 @@ sub output
 		my $ptr = $nick_data->{$nick};
 
 		print $fh qq#  <tr>\n#,
-		qq#    <th colspan="#, $DISPLAY_IMAGES ? 4 : 3, qq#" class="nick">$print</th>\n#,
+		qq#    <th colspan="#, $DisplayImages ? 4 : 3, qq#" class="nick">$print</th>\n#,
 		qq#  </tr>\n#,
 		qq#  <tr>\n#;
 
-		if ($DISPLAY_IMAGES)
+		if ($DisplayImages)
 		{
 			my $link = get_link ($name);
 			my $image = get_image ($name);
 			
-			if ($DEFAULT_IMAGE and !$image)
+			if ($DefaultImage and !$image)
 			{
-				$image = $DEFAULT_IMAGE;
+				$image = $DefaultImage;
 			}
 
 			print $fh qq#    <td class="image" rowspan="2">#;
@@ -356,7 +333,7 @@ sub output
 	</tr>
 EOF
 
-			for (my $i = 0; $i < $PLUGIN_MAX and $i < scalar (@others); $i++)
+			for (my $i = 0; $i < $ConversationsNumber and $i < scalar (@others); $i++)
 			{
 				my $other = $others[$i];
 				my $other_name = nick_to_name ($other) || $other;
@@ -368,7 +345,7 @@ EOF
 
 				for (my $k = 0; $k < 4; $k++)
 				{
-					my $img = $H_IMAGES[$k];
+					my $img = $HorizontalImages[$k];
 					my $num = $ptr->{'conversations'}{$other}{'nicks'}{$nick}[$k];
 					my $width = sprintf ("%.2f", 95 * $num / $max_conv);
 					
@@ -404,7 +381,7 @@ EOF
 			{
 				$num = 0;
 
-				my $img = $V_IMAGES[int ($i / 6)];
+				my $img = $VerticalImages[int ($i / 6)];
 				my $height;
 
 				$num  = $ptr->{'chars'}[$i];
@@ -449,7 +426,7 @@ EOF
 				{
 					my $num = $nick_data->{$nick}{'weekdays'}{$day}[$i];
 					my $height = sprintf ("%.2f", 95 * $num / $max_weekdays);
-					my $img = $V_IMAGES[$i];
+					my $img = $VerticalImages[$i];
 
 					print $fh qq#          <td class="bar vertical">#,
 					qq#<img src="$img" alt="" class="first last" style="height: $height\%;" />#,
@@ -500,7 +477,7 @@ EOF
 				{
 					my $num = $nick_data->{$nick}{'longterm'}[$i][$j];
 					my $height = sprintf ("%.2f", 95 * $num / $max_longterm);
-					my $img = $V_IMAGES[$j];
+					my $img = $VerticalImages[$j];
 					
 					print $fh qq#          <td class="bar vertical">#,
 					qq#<img src="$img" alt="" class="first last" style="height: $height\%;" />#,

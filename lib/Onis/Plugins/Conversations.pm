@@ -9,7 +9,7 @@ use Onis::Config qw(get_config);
 use Onis::Html qw(get_filehandle);
 use Onis::Language qw(translate);
 use Onis::Data::Core qw(register_plugin get_main_nick nick_to_ident nick_to_name);
-use Onis::Data::Persistent;
+use Onis::Data::Persistent ();
 
 =head1 NAME
 
@@ -28,8 +28,7 @@ talk to each other.
 our $ConversationCache = Onis::Data::Persistent->new ('ConversationCache', 'partners', qw(time0 time1 time2 time3));
 our $ConversationData = {};
 
-our @H_IMAGES = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
-our $BAR_WIDTH  = 100;
+our @HorizontalImages = qw#dark-theme/h-red.png dark-theme/h-blue.png dark-theme/h-yellow.png dark-theme/h-green.png#;
 
 if (get_config ('horizontal_images'))
 {
@@ -44,14 +43,16 @@ if (get_config ('horizontal_images'))
 	for ($i = 0; $i < 4; $i++)
 	{
 		next unless (defined ($tmp[$i]));
-		$H_IMAGES[$i] = $tmp[$i];
+		$HorizontalImages[$i] = $tmp[$i];
 	}
 }
-if (get_config ('bar_width'))
+
+our $NumConversations = 10;
+if (get_config ('conversations_number'))
 {
-	my $tmp = get_config ('bar_width');
+	my $tmp = get_config ('conversations_number');
 	$tmp =~ s/\D//g;
-	$BAR_WIDTH = 2 * $tmp if ($tmp >= 10);
+	$NumConversations = $tmp if ($tmp);
 }
 
 register_plugin ('TEXT', \&add);
@@ -170,12 +171,8 @@ sub output
 	my $title = translate ('Conversation partners');
 
 	my $max_num = 0;
-	my $factor = 0;
 
-	my @img = get_config ('horizontal_images');
-
-	# FIXME
-	my @data = get_top (10);
+	my @data = get_top ($NumConversations);
 	return (undef) unless (@data);
 
 	for (@data)
@@ -197,8 +194,6 @@ sub output
 		$max_num = $sum1 if ($max_num < $sum1);
 	}
 	
-	$factor = $BAR_WIDTH / $max_num;
-
 	print $fh <<EOF;
 <table class="plugin conversations">
   <tr>
@@ -221,37 +216,29 @@ EOF
   <tr>
 EOF
 
-		print $fh '    <td class="bar left">';
-		for (3, 2, 1, 0)
+		print $fh '    <td class="bar horizontal left">';
+		for (my $i = 3; $i >= 0; $i--)
 		{
-			my $i = $img[$_];
-			my $w = int (0.5 + ($rec->{'nicks'}{$nick0}[$_] * $factor));
-			my $c = '';
-			$w ||= 1;
+			my $width = sprintf ("%.2f", 95 * $rec->{'nicks'}{$nick0}[$i] / $max_num);
+			my $image = $HorizontalImages[$i];
+			my $class = '';
 
-			$w = $w . 'px';
+			if    ($i == 3) { $class = qq# class="first"#; }
+			elsif ($i == 0) { $class = qq# class="last"#;  }
 
-			if    ($_ == 3) { $c = qq# class="first"#; }
-			elsif ($_ == 0) { $c = qq# class="last"#;  }
-
-			print $fh qq#<img src="$i" style="width: $w;"$c alt="" />#;
+			print $fh qq#<img src="$image" style="width: $width%;"$class alt="" />#;
 		}
-
-		print $fh qq#</td>\n    <td class="bar right">#;
-
-		for (0, 1, 2, 3)
+		print $fh qq#</td>\n    <td class="bar horizontal right">#;
+		for (my $i = 0; $i < 4; $i++)
 		{
-			my $i = $img[$_];
-			my $w = int (0.5 + ($rec->{'nicks'}{$nick1}[$_] * $factor));
-			my $c = '';
-			$w ||= 1;
+			my $width = sprintf ("%.2f", 95 * $rec->{'nicks'}{$nick1}[$i] / $max_num);
+			my $image = $HorizontalImages[$i];
+			my $class = '';
 
-			$w = $w . 'px';
+			if    ($i == 0) { $class = qq# class="first"#; }
+			elsif ($i == 3) { $class = qq# class="last"#;  }
 
-			if    ($_ == 0) { $c = qq# class="first"#; }
-			elsif ($_ == 3) { $c = qq# class="last"#;  }
-
-			print $fh qq#<img src="$i" style="width: $w;"$c alt=""/>#;
+			print $fh qq#<img src="$image" style="width: $width%;"$class alt="" />#;
 		}
 		print $fh "</td>\n  </tr>\n";
 	}
