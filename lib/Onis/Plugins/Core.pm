@@ -471,7 +471,7 @@ sub calculate
 
 		if (!defined ($QuoteData->{$main}))
 		{
-			die;
+			next;
 		}
 		elsif (scalar (@{$QuoteData->{$main}}) < $QuoteCacheSize)
 		{
