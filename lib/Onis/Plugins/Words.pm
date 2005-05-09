@@ -83,7 +83,7 @@ sub calculate
 	}
 
 	@$WordData = sort { $b->[1] <=> $a->[1] } (@data);
-	splice (@$WordData, $max);
+	splice (@$WordData, $max) if (scalar (@$WordData) > $max);
 }
 
 sub output
