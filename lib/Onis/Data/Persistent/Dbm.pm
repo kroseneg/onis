@@ -49,6 +49,7 @@ $DBMDirectory =~ s#/+$##g;
 if (!$DBMDirectory or !-d $DBMDirectory)
 {
 	print STDERR <<ERROR;
+
 The directory ``$DBMDirectory'' does not exist or is not useable. Please
 create it before running onis.
 ERROR
