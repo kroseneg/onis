@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 ##########################################################################
-#    onis 0.8.1                                               2005-04-23 #
+#    onis 0.8.2                                               2005-06-07 #
 #---=============--------------------------------------------------------#
 # Language: Perl                                                         #
 # Purpose:  Generating statistics                                        #
 # Input:    IRC-Logfiles                                                 #
 # Output:   One HTML file                                                #
-# Version:  0.8.1 (unstable)                                             #
+# Version:  0.8.2 (unstable)                                             #
 # License:  GPL                                                          #
 # Homepage: http://verplant.org/onis/                                    #
 # Authors:  Florian octo Forster <octo@verplant.org>                     #
