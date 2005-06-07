@@ -1,4 +1,4 @@
-%define ver 0.8.1
+%define ver 0.8.2
 %define perllibdir %(eval "`perl -V:installvendorlib`"; echo $installvendorlib)
 
 Name: onis
@@ -66,6 +66,9 @@ rm -fr $RPM_BUILD_ROOT
 %{_mandir}/man1/*
 
 %changelog
+* Tue Jun 07 2005 Florian Forster <octo@verplant.org>
+- New upstream version.
+
 * Sat Apr 23 2005 Florian Forster <octo@verplant.org>
 - Added generation of manpage.
 - Rebuild for onis-0.8.1
