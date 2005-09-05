@@ -611,7 +611,7 @@ sub ranking
 	
 	($tmp) = sort { $NickData->{$b}{'chars_total'} <=> $NickData->{$a}{'chars_total'} } (@nicks);
 	$max_chars = $NickData->{$tmp}{'chars_total'} || 0;
-	
+
 	$trans = translate ('Most active nicks');
 	
 	print $fh "<h2>$trans</h2>\n";
@@ -912,6 +912,8 @@ sub bar
 
 	my $i;
 	my $j;
+
+	$max_num ||= 1;
 
 	for ($i = 0; $i < 4; $i++)
 	{
